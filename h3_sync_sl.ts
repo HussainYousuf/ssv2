@@ -54,6 +54,7 @@ export function onRequest(context: types.EntryPoints.Suitelet.onRequestContext) 
             response.write(JSON.stringify({ id: String(id) }));
         }
     } catch (error) {
+        context.response.write(JSON.stringify({ error: error.message }));
         log.error({
             title: "error",
             details: JSON.stringify(error)

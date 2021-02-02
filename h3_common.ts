@@ -1,3 +1,4 @@
+import record from 'N/record';
 import runtime from 'N/runtime';
 import search from 'N/search';
 import log from 'N/log';
@@ -53,8 +54,13 @@ export function isCurrentScriptRunning() {
     return isScriptRunning(currentScript.id, currentScript.deploymentId);
 }
 
+export const functions: { [key: string]: any; } = {
+    setValue(this: { record: record.Record, fieldId: string; }, value: any) {
+        this.record.setValue({ fieldId: this.fieldId, value });
+    }
+};
 
-export const esConfig: any = {};
+export const esConfig: { [key: string]: string; } = {};
 
 function initializeEsConfig(storePermission: { store: string, permission: string; }) {
     const { store, permission } = storePermission;
@@ -72,7 +78,11 @@ function initializeEsConfig(storePermission: { store: string, permission: string
             [
                 [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.STARTSWITH, permission.toLowerCase()],
                 "OR",
-                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, "type"]
+                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, "type"],
+                "OR",
+                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, "url"],
+                "OR",
+                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, "access_token"]
             ]
         ],
         [
