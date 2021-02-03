@@ -23,7 +23,7 @@ export function execute(context: EntryPoints.Scheduled.executeContext) {
     common.searchRecords(
         callback.bind(callbackContext),
         constants.RECORDS.EXTERNAL_STORES_CONFIG.ID,
-        [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, "key"],
+        [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.KEY],
         [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.STORE, constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.VALUE]
     );
 

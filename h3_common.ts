@@ -31,7 +31,7 @@ export function scheduleScript(storePermissions: [{ store: string, permission: s
     log.debug("common.scheduleScript => storePermissions", storePermissions);
     const { permission } = storePermissions[0];
     switch (permission) {
-        case "ITEM_IMPORT":
+        case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
             task.create({
                 taskType: task.TaskType.MAP_REDUCE,
                 scriptId: constants.SCRIPTS.ITEM_IMPORT,
@@ -54,20 +54,16 @@ export function isCurrentScriptRunning() {
     return isScriptRunning(currentScript.id, currentScript.deploymentId);
 }
 
-export const functions: { [key: string]: any; } = {
-    setValue(this: { record: record.Record, fieldId: string; }, value: any) {
-        this.record.setValue({ fieldId: this.fieldId, value });
-    }
-};
-
-export const esConfig: { [key: string]: string; } = {};
+export const esConfig: { [key: string]: any; } = {};
 
 function initializeEsConfig(storePermission: { store: string, permission: string; }) {
     const { store, permission } = storePermission;
+    const { ITEM_IMPORT_FIELDMAP, TYPE, URL, ACCESSTOKEN } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
     function callback(this: any, result: search.Result) {
         const key = result.getValue(result.columns[0].name) as string;
         const value = result.getValue(result.columns[1].name) as string;
-        this[key] = value;
+        if ([ITEM_IMPORT_FIELDMAP].includes(key)) this[key] ? this[key].push(value) : this[key] = [value];
+        else this[key] = value;
     }
     searchRecords(
         callback.bind(esConfig),
@@ -78,11 +74,11 @@ function initializeEsConfig(storePermission: { store: string, permission: string
             [
                 [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.STARTSWITH, permission.toLowerCase()],
                 "OR",
-                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, "type"],
+                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, TYPE],
                 "OR",
-                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, "url"],
+                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, URL],
                 "OR",
-                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, "access_token"]
+                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, ACCESSTOKEN]
             ]
         ],
         [
@@ -96,7 +92,7 @@ function initializeEsConfig(storePermission: { store: string, permission: string
 export function getWrapper(storePermission: { store: string, permission: string; }) {
     if (Object.keys(esConfig).length == 0) initializeEsConfig(storePermission);
     switch (esConfig.type) {
-        case "SHOPIFY":
+        case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPE.SHOPIFY:
             return shopifyWrapper;
 
         default:

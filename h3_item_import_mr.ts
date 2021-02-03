@@ -10,6 +10,8 @@ import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
 import * as common from "./h3_common";
+import { esConfig } from './h3_common';
+import format from 'N/format';
 
 
 function init() {
@@ -35,11 +37,13 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
         summary: search.Summary.MAX,
     });
 
-    const maxEsModDate = search.create({
+    let maxEsModDate = search.create({
         type: constants.RECORDS.RECORDS_SYNC.ID,
         filters,
         columns: [maxEsModDateCol]
     }).run().getRange(0, 1)[0]?.getValue(maxEsModDateCol) as string;
+
+    if (maxEsModDate) maxEsModDate = (format.parse({ type: format.Type.DATETIMETZ, value: maxEsModDate }) as Date).toISOString();
 
     log.debug("item_import.getInputData => maxEsModDate", maxEsModDate);
 
@@ -51,8 +55,9 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 
     const { storePermissions, filters } = init();
     const wrapper = common.getWrapper(storePermissions[0]);
-    const esItem = wrapper?.parseEsItem(context.value);
-    const esId = esItem.id;
+    if (!wrapper) return;
+    const esItem = wrapper.parseEsItem(context.value);
+    const { esId, esModDate, esItemType } = esItem;
 
     filters.push("AND", [constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, esId]);
 
@@ -69,31 +74,33 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
         record.load({ type: constants.RECORDS.RECORDS_SYNC.ID, id: rsId, isDynamic: true }) :
         record.create({ type: constants.RECORDS.RECORDS_SYNC.ID, isDynamic: true });
 
-    const nsItem = nsId ?
-        record.load({ type: record.Type.INVENTORY_ITEM, id: nsId, isDynamic: true }) :
-        record.create({ type: record.Type.INVENTORY_ITEM, isDynamic: true });
+    rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, value: storePermissions[0].store })
+        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, value: esId })
+        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, value: constants.LIST_RECORDS.RECORD_TYPES.ITEM })
+        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE_MODIFICATION_DATE, value: esModDate });
 
-    for (const [key, value] of Object.entries(common.esConfig)) {
-        if (!key.startsWith("item_import.field_map.")) continue;
-        const nsField = key.split(".")[2];
-        const values = value.trim().split(" ");
-        const arg1 = values[0];
-        const args = values.splice(1);
-        const thisArg = { record: nsItem, fieldId: nsField };
-        if (args.length > 0) common.functions[arg1].apply(thisArg, args.map(arg => esItem[arg]));
-        else common.functions["setValue"].call(thisArg, esItem[arg1]);
+    try {
+        const nsItem = nsId ?
+            record.load({ type: esItemType, id: nsId, isDynamic: true }) :
+            record.create({ type: esItemType, isDynamic: true });
+
+        for (const value of common.esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.ITEM_IMPORT_FIELDMAP] as [string]) {
+            const values = value.trim().split(/\s+/);
+            const functionName = values[0];
+            const args = values.slice(1);
+            if (functionName in wrapper.functions) wrapper.functions[functionName].apply({ nsRecord: nsItem, esRecord: esItem, esConfig }, args);
+        }
+
+        nsId = String(nsItem.save());
+        rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID, value: nsId })
+            .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS_NAME, value: constants.LIST_RECORDS.STATUSES.IMPORTED })
+            .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, value: "" });
+    } catch (error) {
+        rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS_NAME, value: constants.LIST_RECORDS.STATUSES.FAILED })
+            .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, value: error.message });
     }
 
-    nsId = String(nsItem.save());
-    rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, value: storePermissions[0].store })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID, value: storePermissions[0].store })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, value: storePermissions[0].store })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, value: storePermissions[0].store })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, value: storePermissions[0].store })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE_MODIFICATION_DATE, value: storePermissions[0].store })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS_NAME, value: storePermissions[0].store })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, value: storePermissions[0].store })
-        .save();
+    rsRecord.save();
 
 }
 

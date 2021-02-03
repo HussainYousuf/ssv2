@@ -41,6 +41,24 @@ export default {
                 STORE: "custrecord_h3_esc_store",
                 KEY: "custrecord_h3_esc_key",
                 VALUE: "custrecord_h3_esc_value",
+            },
+            KEYS: {
+                TYPE: "type",
+                URL: "url",
+                KEY: "key",
+                ACCESSTOKEN: "accesstoken",
+                ITEM_IMPORT_QUERY: "item_import_query",
+                ITEM_IMPORT_FILTERS: "item_import_filters",
+                ITEM_IMPORT_FIELDMAP: "item_import_fieldmap",
+            },
+            PERMISSIONS: {
+                ITEM_IMPORT: "ITEM_IMPORT",
+                ITEM_EXPORT: "ITEM_EXPORT",
+                SALESORDER_IMPORT: "SALESORDER_IMPORT",
+                SALESORDER_EXPORT: "SALESORDER_EXPORT"
+            },
+            TYPE: {
+                SHOPIFY: "SHOPIFY"
             }
         }
     },
