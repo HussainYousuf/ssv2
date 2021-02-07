@@ -7,14 +7,15 @@ import task from "N/task";
 import * as shopifyWrapper from "./h3_shopify_wrapper";
 import format from "N/format";
 
-export function isScriptRunning(scriptId: string, deploymentId: string) {
+export function isScriptRunning(scriptIds: [string]) {
     const executingStatuses = ["PENDING", "PROCESSING", "RESTART", "RETRY"];
     return Boolean(search.create({
         type: search.Type.SCHEDULED_SCRIPT_INSTANCE,
         filters: [
             ["status", search.Operator.ANYOF, executingStatuses], "AND",
-            ["script.scriptid", search.Operator.IS, scriptId], "AND",
-            ["scriptDeployment.scriptid", search.Operator.ISNOT, deploymentId]
+            ["script.scriptid", search.Operator.ANYOF, scriptIds]
+            // , "AND",
+            // ["scriptDeployment.scriptid", search.Operator.ISNOT, deploymentId]
         ],
     }).runPaged().count);
 }
@@ -51,7 +52,7 @@ export function scheduleScript(storePermissions: [{ store: string, permission: s
 
 export function isCurrentScriptRunning() {
     const currentScript = runtime.getCurrentScript();
-    return isScriptRunning(currentScript.id, currentScript.deploymentId);
+    return isScriptRunning([currentScript.id]);
 }
 
 export const esConfig: { [key: string]: any; } = {};
@@ -101,13 +102,13 @@ export function getWrapper(storePermission: { store: string, permission: string;
     }
 }
 
-export function getISODate(date: string) {
-    return (format.parse({
-        value: format.format({
-            value: new Date(date),
-            type: format.Type.DATETIMETZ,
-            timezone: format.Timezone.AMERICA_LOS_ANGELES
-        }),
-        type: format.Type.DATETIMETZ,
-    }) as Date).toISOString();
-}
+// export function getISODate(date: string) {
+//     return (format.parse({
+//         value: format.format({
+//             value: new Date(date),
+//             type: format.Type.DATETIMETZ,
+//             timezone: format.Timezone.AMERICA_LOS_ANGELES
+//         }),
+//         type: format.Type.DATETIMETZ,
+//     }) as Date).toISOString();
+// }

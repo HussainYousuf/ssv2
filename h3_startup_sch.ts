@@ -6,7 +6,7 @@
 import { EntryPoints } from 'N/types';
 import search from 'N/search';
 import constants from './h3_constants';
-import * as common from './h3_common';
+import { searchRecords, scheduleScript } from './h3_common';
 import log from "N/log";
 
 export function execute(context: EntryPoints.Scheduled.executeContext) {
@@ -20,7 +20,7 @@ export function execute(context: EntryPoints.Scheduled.executeContext) {
             log.error(error.name, error.message);
         }
     }
-    common.searchRecords(
+    searchRecords(
         callback.bind(callbackContext),
         constants.RECORDS.EXTERNAL_STORES_CONFIG.ID,
         [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.KEY],
@@ -28,8 +28,8 @@ export function execute(context: EntryPoints.Scheduled.executeContext) {
     );
 
     const { storePermissions } = callbackContext;
-    common.scheduleScript((storePermissions as unknown as [{ store: string, permission: string; }])
-        .sort((a, b) => constants.ORDERED_RECORD_TYPES.indexOf(a.permission) - constants.ORDERED_RECORD_TYPES.indexOf(b.permission)));
+    scheduleScript((storePermissions as unknown as [{ store: string, permission: string; }]));
+    // .sort((a, b) => constants.ORDERED_RECORD_TYPES.indexOf(a.permission) - constants.ORDERED_RECORD_TYPES.indexOf(b.permission)));
 }
 
 function decrypt(text: string): [string] {

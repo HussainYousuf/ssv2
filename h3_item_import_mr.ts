@@ -9,8 +9,7 @@ import runtime from 'N/runtime';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import * as common from "./h3_common";
-import { esConfig } from './h3_common';
+import { esConfig, getWrapper } from './h3_common';
 import format from 'N/format';
 
 
@@ -47,14 +46,14 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
     log.debug("item_import.getInputData => maxEsModDate", maxEsModDate);
 
-    return common.getWrapper(storePermissions[0])?.getItemsFromEs(maxEsModDate);
+    return getWrapper(storePermissions[0])?.getItemsFromEs(maxEsModDate);
 
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
 
     const { storePermissions, filters } = init();
-    const wrapper = common.getWrapper(storePermissions[0]);
+    const wrapper = getWrapper(storePermissions[0]);
     if (!wrapper) return;
     const esItem = wrapper.parseEsItem(context.value);
     const { esId, esModDate, esItemType } = esItem;
@@ -84,7 +83,7 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
             record.load({ type: esItemType, id: nsId, isDynamic: true }) :
             record.create({ type: esItemType, isDynamic: true });
 
-        for (const value of common.esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.ITEM_IMPORT_FIELDMAP] as [string]) {
+        for (const value of esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.ITEM_IMPORT_FIELDMAP] as [string]) {
             const values = value.trim().split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);

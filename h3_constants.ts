@@ -73,11 +73,11 @@ export default {
             FAILED: "Failed",
         }
     },
-    ORDERED_RECORD_TYPES: [
-        "ITEM_IMPORT",
-        "ITEM_EXPORT",
-        "SALESORDER_IMPORT",
-        "SALESORDER_EXPORT"
-    ]
+    // ORDERED_RECORD_TYPES: [
+    //     "ITEM_IMPORT",
+    //     "ITEM_EXPORT",
+    //     "SALESORDER_IMPORT",
+    //     "SALESORDER_EXPORT"
+    // ]
 };
 
