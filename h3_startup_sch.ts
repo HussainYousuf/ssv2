@@ -29,7 +29,6 @@ export function execute(context: EntryPoints.Scheduled.executeContext) {
 
     const { storePermissions } = callbackContext;
     scheduleScript((storePermissions as unknown as [{ store: string, permission: string; }]));
-    // .sort((a, b) => constants.ORDERED_RECORD_TYPES.indexOf(a.permission) - constants.ORDERED_RECORD_TYPES.indexOf(b.permission)));
 }
 
 function decrypt(text: string): [string] {

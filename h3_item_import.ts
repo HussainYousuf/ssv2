@@ -9,12 +9,14 @@ import runtime from 'N/runtime';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { esConfig, getWrapper } from './h3_common';
+import { getWrapper } from './h3_common';
 import format from 'N/format';
 
 
 function init() {
-    const storePermissions = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.ITEM_IMPORT_STORE_PERMISSIONS) as string);
+    const storePermissions = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE_PERMISSIONS) as string);
+    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
+
     const { store } = storePermissions[0];
     const filters = [
         [constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
@@ -23,16 +25,16 @@ function init() {
         "AND",
         [constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM]
     ];
-    return { storePermissions, filters };
+    return { storePermissions, esConfig, filters };
 }
 
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
 
-    const { storePermissions, filters } = init();
+    const { filters } = init();
 
     const maxEsModDateCol = search.createColumn({
-        name: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE_MODIFICATION_DATE,
+        name: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE,
         summary: search.Summary.MAX,
     });
 
@@ -46,14 +48,14 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
     log.debug("item_import.getInputData => maxEsModDate", maxEsModDate);
 
-    return getWrapper(storePermissions[0])?.getItemsFromEs(maxEsModDate);
+    return getWrapper()?.getItemsFromEs(maxEsModDate);
 
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
 
-    const { storePermissions, filters } = init();
-    const wrapper = getWrapper(storePermissions[0]);
+    const { storePermissions, esConfig, filters } = init();
+    const wrapper = getWrapper();
     if (!wrapper) return;
     const esItem = wrapper.parseEsItem(context.value);
     const { esId, esModDate, esItemType } = esItem;
@@ -76,7 +78,7 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
     rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, value: storePermissions[0].store })
         .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, value: esId })
         .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, value: constants.LIST_RECORDS.RECORD_TYPES.ITEM })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE_MODIFICATION_DATE, value: esModDate });
+        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, value: esModDate });
 
     try {
         const nsItem = nsId ?

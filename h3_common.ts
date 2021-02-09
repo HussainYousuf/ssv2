@@ -5,7 +5,7 @@ import log from 'N/log';
 import constants from './h3_constants';
 import task from "N/task";
 import * as shopifyWrapper from "./h3_shopify_wrapper";
-import format from "N/format";
+import * as itemImport from "./h3_item_import";
 
 export function isScriptRunning(scriptIds: [string]) {
     const executingStatuses = ["PENDING", "PROCESSING", "RESTART", "RETRY"];
@@ -14,8 +14,6 @@ export function isScriptRunning(scriptIds: [string]) {
         filters: [
             ["status", search.Operator.ANYOF, executingStatuses], "AND",
             ["script.scriptid", search.Operator.ANYOF, scriptIds]
-            // , "AND",
-            // ["scriptDeployment.scriptid", search.Operator.ISNOT, deploymentId]
         ],
     }).runPaged().count);
 }
@@ -30,24 +28,19 @@ export function searchRecords(callback: any, type: search.SearchCreateOptions['t
 export function scheduleScript(storePermissions: [{ store: string, permission: string; }] | []) {
     if (storePermissions.length == 0) return;
     log.debug("common.scheduleScript => storePermissions", storePermissions);
-    const { permission } = storePermissions[0];
-    switch (permission) {
-        case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
-            task.create({
-                taskType: task.TaskType.MAP_REDUCE,
-                scriptId: constants.SCRIPTS.ITEM_IMPORT,
-                deploymentId: constants.SCRIPTS_DEPLOYMENTS.ITEM_IMPORT,
-                params: {
-                    [constants.SCRIPT_PARAMS.ITEM_IMPORT_STORE_PERMISSIONS]: JSON.stringify(storePermissions)
-                }
-            }).submit();
-            break;
-
-        default:
-            log.error("common.scheduleScript => unknown permission", permission);
-            break;
-    }
-
+    const esConfig = getEsConfig(storePermissions[0]);
+    log.debug("common.scheduleScript => esConfig", esConfig);
+    task.create({
+        taskType: task.TaskType.MAP_REDUCE,
+        scriptId: constants.SCRIPTS.BASE,
+        deploymentId: constants.SCRIPTS_DEPLOYMENTS.BASE,
+        params: {
+            [constants.SCRIPT_PARAMS.BASE_STORE_PERMISSIONS]: JSON.stringify(storePermissions),
+            [constants.SCRIPT_PARAMS.BASE_CONFIG]: JSON.stringify(esConfig),
+            [constants.SCRIPT_PARAMS.BASE_TYPE]: esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.TYPE],
+            [constants.SCRIPT_PARAMS.BASE_PERMISSION]: storePermissions[0].permission
+        }
+    }).submit();
 }
 
 export function isCurrentScriptRunning() {
@@ -55,10 +48,8 @@ export function isCurrentScriptRunning() {
     return isScriptRunning([currentScript.id]);
 }
 
-export const esConfig: { [key: string]: any; } = {};
-
-function initializeEsConfig(storePermission: { store: string, permission: string; }) {
-    const { store, permission } = storePermission;
+function getEsConfig({ store, permission }: { store: string, permission: string; }) {
+    const esConfig = {};
     const { ITEM_IMPORT_FIELDMAP, TYPE, URL, ACCESSTOKEN } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
     function callback(this: any, result: search.Result) {
         const key = result.getValue(result.columns[0].name) as string;
@@ -88,27 +79,29 @@ function initializeEsConfig(storePermission: { store: string, permission: string
         ]
     );
     log.debug("common.initializeEsConfig => esConfig", esConfig);
+    return esConfig as { [key: string]: string; };
 }
 
-export function getWrapper(storePermission: { store: string, permission: string; }) {
-    if (Object.keys(esConfig).length == 0) initializeEsConfig(storePermission);
-    switch (esConfig.type) {
+export function getWrapper() {
+    const type = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_TYPE);
+    switch (type) {
         case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPE.SHOPIFY:
             return shopifyWrapper;
 
         default:
-            log.error("common.getWrapper => unknown wrapper", storePermission);
+            log.error("common.getWrapper => unknown type", type);
             break;
     }
 }
 
-// export function getISODate(date: string) {
-//     return (format.parse({
-//         value: format.format({
-//             value: new Date(date),
-//             type: format.Type.DATETIMETZ,
-//             timezone: format.Timezone.AMERICA_LOS_ANGELES
-//         }),
-//         type: format.Type.DATETIMETZ,
-//     }) as Date).toISOString();
-// }
+export function getPermission() {
+    const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION);
+    switch (permission) {
+        case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
+            return itemImport;
+
+        default:
+            log.error("common.getWrapper => unknown permission", permission);
+            break;
+    }
+}

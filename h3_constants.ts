@@ -7,19 +7,22 @@ export default {
         DASHBOARD_SL_FOLDER: "custscript_h3_dashboard_sl_folder",
         DASHBOARD_SL_PARENT: "custscript_h3_dashboard_sl_parent",
         SYNC_SL_KEY: "custscript_h3_sync_sl_key",
-        ITEM_IMPORT_STORE_PERMISSIONS: "custscript_h3_item_import_mr_sps"
+        BASE_STORE_PERMISSIONS: "custscript_h3_base_mr_sps",
+        BASE_CONFIG: "custscript_h3_base_mr_config",
+        BASE_TYPE: "custscript_h3_base_mr_type",
+        BASE_PERMISSION: "custscript_h3_base_mr_permission",
     },
     SCRIPTS: {
         DASHBOARD_SL: "customscript_h3_dashboard_sl",
         SYNC_SL: "customscript_h3_sync_sl",
         STARTUP: "customscript_h3_startup_sch",
-        ITEM_IMPORT: "customscript_h3_item_import_mr"
+        BASE: "customscript_h3_base_mr"
     },
     SCRIPTS_DEPLOYMENTS: {
         DASHBOARD_SL: "customdeploy_h3_dashboard_sl",
         SYNC_SL: "customdeploy_h3_sync_sl",
         STARTUP: "customdeploy_h3_startup_sch",
-        ITEM_IMPORT: "customdeploy_h3_item_import_mr"
+        BASE: "customdeploy_h3_base_mr"
     },
     RECORDS: {
         RECORDS_SYNC: {
@@ -29,8 +32,8 @@ export default {
                 NETSUITE_ID: "custrecord_h3_rs_netsuite_id",
                 EXTERNAL_ID: "custrecord_h3_rs_external_id",
                 RECORD_TYPE_NAME: "custrecord_h3_rs_record_type.name",
-                NETSUITE_MODIFICATION_DATE: "custrecord_h3_rs_ns_mod_date",
-                EXTERNAL_STORE_MODIFICATION_DATE: "custrecord_h3_rs_es_mod_date",
+                NETSUITE_MODIFICATION_DATE: "custrecord_h3_rs_netsuite_mod_date",
+                EXTERNAL_MODIFICATION_DATE: "custrecord_h3_rs_external_mod_date",
                 STATUS_NAME: "custrecord_h3_rs_status.name",
                 ERROR_LOG: "custrecord_h3_rs_error_log"
             }
@@ -73,11 +76,5 @@ export default {
             FAILED: "Failed",
         }
     },
-    // ORDERED_RECORD_TYPES: [
-    //     "ITEM_IMPORT",
-    //     "ITEM_EXPORT",
-    //     "SALESORDER_IMPORT",
-    //     "SALESORDER_EXPORT"
-    // ]
 };
 
