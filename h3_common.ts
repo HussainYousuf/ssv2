@@ -28,7 +28,8 @@ export function searchRecords(callback: any, type: search.SearchCreateOptions['t
 export function scheduleScript(storePermissions: [{ store: string, permission: string; }] | []) {
     if (storePermissions.length == 0) return;
     log.debug("common.scheduleScript => storePermissions", storePermissions);
-    const esConfig = getEsConfig(storePermissions[0]);
+    const { store, permission } = storePermissions[0];
+    const esConfig = getEsConfig(store, permission);
     log.debug("common.scheduleScript => esConfig", esConfig);
     task.create({
         taskType: task.TaskType.MAP_REDUCE,
@@ -38,7 +39,9 @@ export function scheduleScript(storePermissions: [{ store: string, permission: s
             [constants.SCRIPT_PARAMS.BASE_STORE_PERMISSIONS]: JSON.stringify(storePermissions),
             [constants.SCRIPT_PARAMS.BASE_CONFIG]: JSON.stringify(esConfig),
             [constants.SCRIPT_PARAMS.BASE_TYPE]: esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.TYPE],
-            [constants.SCRIPT_PARAMS.BASE_PERMISSION]: storePermissions[0].permission
+            [constants.SCRIPT_PARAMS.BASE_STORE]: store,
+            [constants.SCRIPT_PARAMS.BASE_PERMISSION]: permission
+
         }
     }).submit();
 }
@@ -48,7 +51,7 @@ export function isCurrentScriptRunning() {
     return isScriptRunning([currentScript.id]);
 }
 
-function getEsConfig({ store, permission }: { store: string, permission: string; }) {
+function getEsConfig(store: string, permission: string) {
     const esConfig = {};
     const { ITEM_IMPORT_FIELDMAP, TYPE, URL, ACCESSTOKEN } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
     function callback(this: any, result: search.Result) {

@@ -10,6 +10,7 @@ export default {
         BASE_STORE_PERMISSIONS: "custscript_h3_base_mr_sps",
         BASE_CONFIG: "custscript_h3_base_mr_config",
         BASE_TYPE: "custscript_h3_base_mr_type",
+        BASE_STORE: "custscript_h3_base_mr_store",
         BASE_PERMISSION: "custscript_h3_base_mr_permission",
     },
     SCRIPTS: {

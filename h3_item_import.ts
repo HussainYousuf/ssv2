@@ -1,8 +1,3 @@
-/**
- *@NApiVersion 2.1
- *@NScriptType MapReduceScript
- */
-
 import { EntryPoints } from 'N/types';
 import record from 'N/record';
 import runtime from 'N/runtime';
@@ -14,10 +9,7 @@ import format from 'N/format';
 
 
 function init() {
-    const storePermissions = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE_PERMISSIONS) as string);
-    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
-
-    const { store } = storePermissions[0];
+    const store = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE);
     const filters = [
         [constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
         "AND",
@@ -25,7 +17,7 @@ function init() {
         "AND",
         [constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM]
     ];
-    return { storePermissions, esConfig, filters };
+    return { store, filters };
 }
 
 
@@ -53,8 +45,8 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
-
-    const { storePermissions, esConfig, filters } = init();
+    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
+    const { store, filters } = init();
     const wrapper = getWrapper();
     if (!wrapper) return;
     const esItem = wrapper.parseEsItem(context.value);
@@ -75,7 +67,7 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
         record.load({ type: constants.RECORDS.RECORDS_SYNC.ID, id: rsId, isDynamic: true }) :
         record.create({ type: constants.RECORDS.RECORDS_SYNC.ID, isDynamic: true });
 
-    rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, value: storePermissions[0].store })
+    rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, value: store })
         .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, value: esId })
         .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, value: constants.LIST_RECORDS.RECORD_TYPES.ITEM })
         .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, value: esModDate });
