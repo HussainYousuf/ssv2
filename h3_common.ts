@@ -5,6 +5,8 @@ import log from 'N/log';
 import constants from './h3_constants';
 import task from "N/task";
 import * as shopifyWrapper from "./h3_shopify_wrapper";
+import * as salesforceWrapper from "./h3_salesforce_wrapper";
+import * as itemImport from "./h3_item_import";
 
 export function isScriptRunning(scriptIds: [string]) {
     const executingStatuses = ["PENDING", "PROCESSING", "RESTART", "RETRY"];
@@ -83,10 +85,26 @@ function getEsConfig(store: string, permission: string) {
     return esConfig as { [key: string]: string; };
 }
 
-export function getWrapper() {
+export function getWrapper(): any {
     const type = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_TYPE);
+    switch (type) {
+        case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
+            return shopifyWrapper;
+        case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
+            return salesforceWrapper;
+        default:
+            log.error("common.getWrapper => unknown type", type);
+            break;
+    }
+}
+
+export function getPermission() {
     const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION);
-    if (type == constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY) {
-        if (permission == constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT) return shopifyWrapper.ITEM_IMPORT;
+    switch (permission) {
+        case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
+            return itemImport;
+        default:
+            log.error("common.getWrapper => unknown permission", permission);
+            break;
     }
 }

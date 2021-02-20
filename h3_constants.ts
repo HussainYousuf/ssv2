@@ -63,7 +63,8 @@ export default {
                 SALESORDER_EXPORT: "SALESORDER_EXPORT"
             },
             TYPES: {
-                SHOPIFY: "SHOPIFY"
+                SHOPIFY: "SHOPIFY",
+                SALESFORCE: "SALESFORCE"
             }
         }
     },
@@ -71,7 +72,6 @@ export default {
         RECORD_TYPES: {
             ITEM: "Item",
             SALESORDER: "Salesorder",
-            PRODUCT: "Product"
         },
         STATUSES: {
             IMPORTED: "Imported",

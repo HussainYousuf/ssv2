@@ -23,9 +23,9 @@ function init() {
 
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-
+    if (getWrapper()?.["ITEM_IMPORT"]?.["getInputData"]) getWrapper()["ITEM_IMPORT"]["getInputData"](context);
+    
     const { filters, esConfig } = init();
-
     const maxEsModDateCol = search.createColumn({
         name: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE,
         summary: search.Summary.MAX,

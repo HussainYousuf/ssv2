@@ -4,20 +4,20 @@
  */
 
 import { EntryPoints } from 'N/types';
-import { getWrapper } from './h3_common';
+import { getPermission } from './h3_common';
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    return getWrapper()?.getInputData(context);
+    return getPermission()?.getInputData(context);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
-    getWrapper()?.map(context);
+    getPermission()?.map(context);
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    getWrapper()?.reduce(context);
+    getPermission()?.reduce(context);
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    getWrapper()?.summarize(context);
+    getPermission()?.summarize(context);
 }
