@@ -10,6 +10,7 @@ import format from 'N/format';
 
 function init() {
     const store = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE);
+    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
     const filters = [
         [constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
         "AND",
@@ -17,13 +18,13 @@ function init() {
         "AND",
         [constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM]
     ];
-    return { store, filters };
+    return { store, filters, esConfig };
 }
 
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
 
-    const { filters } = init();
+    const { filters, esConfig } = init();
 
     const maxEsModDateCol = search.createColumn({
         name: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE,
@@ -40,13 +41,12 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
     log.debug("item_import.getInputData => maxEsModDate", maxEsModDate);
 
-    return getWrapper()?.getItemsFromEs(maxEsModDate);
+    return getWrapper()?.getItemsFromEs(maxEsModDate, esConfig);
 
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
-    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
-    const { store, filters } = init();
+    const { store, filters, esConfig } = init();
     const wrapper = getWrapper();
     if (!wrapper) return;
     const esItem = wrapper.parseEsItem(context.value);

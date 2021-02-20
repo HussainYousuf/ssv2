@@ -5,7 +5,6 @@ import log from 'N/log';
 import constants from './h3_constants';
 import task from "N/task";
 import * as shopifyWrapper from "./h3_shopify_wrapper";
-import * as itemImport from "./h3_item_import";
 
 export function isScriptRunning(scriptIds: [string]) {
     const executingStatuses = ["PENDING", "PROCESSING", "RESTART", "RETRY"];
@@ -30,7 +29,6 @@ export function scheduleScript(storePermissions: [{ store: string, permission: s
     log.debug("common.scheduleScript => storePermissions", storePermissions);
     const { store, permission } = storePermissions[0];
     const esConfig = getEsConfig(store, permission);
-    log.debug("common.scheduleScript => esConfig", esConfig);
     task.create({
         taskType: task.TaskType.MAP_REDUCE,
         scriptId: constants.SCRIPTS.BASE,
@@ -81,30 +79,14 @@ function getEsConfig(store: string, permission: string) {
             constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.VALUE
         ]
     );
-    log.debug("common.initializeEsConfig => esConfig", esConfig);
+    log.debug("common.getEsConfig => esConfig", esConfig);
     return esConfig as { [key: string]: string; };
 }
 
 export function getWrapper() {
     const type = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_TYPE);
-    switch (type) {
-        case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPE.SHOPIFY:
-            return shopifyWrapper;
-
-        default:
-            log.error("common.getWrapper => unknown type", type);
-            break;
-    }
-}
-
-export function getPermission() {
     const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION);
-    switch (permission) {
-        case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
-            return itemImport;
-
-        default:
-            log.error("common.getWrapper => unknown permission", permission);
-            break;
+    if (type == constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY) {
+        if (permission == constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT) return shopifyWrapper.ITEM_IMPORT;
     }
 }

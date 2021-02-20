@@ -54,6 +54,7 @@ export default {
                 ITEM_IMPORT_QUERY: "item_import_query",
                 ITEM_IMPORT_FILTERS: "item_import_filters",
                 ITEM_IMPORT_FIELDMAP: "item_import_fieldmap",
+                ITEM_IMPORT_URL: "item_import_url"
             },
             PERMISSIONS: {
                 ITEM_IMPORT: "ITEM_IMPORT",
@@ -61,7 +62,7 @@ export default {
                 SALESORDER_IMPORT: "SALESORDER_IMPORT",
                 SALESORDER_EXPORT: "SALESORDER_EXPORT"
             },
-            TYPE: {
+            TYPES: {
                 SHOPIFY: "SHOPIFY"
             }
         }
@@ -69,7 +70,8 @@ export default {
     LIST_RECORDS: {
         RECORD_TYPES: {
             ITEM: "Item",
-            SALESORDER: "Salesorder"
+            SALESORDER: "Salesorder",
+            PRODUCT: "Product"
         },
         STATUSES: {
             IMPORTED: "Imported",
