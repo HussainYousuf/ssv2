@@ -5,33 +5,27 @@
 
 import { EntryPoints } from 'N/types';
 import { getCurrentWrapper, getPermission, getProperty } from './h3_common';
-import runtime from 'N/runtime';
-import constants from './h3_constants';
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION) as string;
-    const _super = getProperty(getCurrentWrapper(), `${permission}.getInputData`);
+    const _super = getProperty(getCurrentWrapper(), "getInputData");
     if (_super) return _super(context);
-    return getPermission(permission)?.getInputData(context);
+    return getPermission().getInputData(context);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
-    const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION) as string;
-    const _super = getProperty(getCurrentWrapper(), `${permission}.map`);
+    const _super = getProperty(getCurrentWrapper(), "map");
     if (_super) return _super(context);
-    return getPermission(permission)?.map(context);
+    return getPermission().map(context);
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION) as string;
-    const _super = getProperty(getCurrentWrapper(), `${permission}.reduce`);
+    const _super = getProperty(getCurrentWrapper(), "reduce");
     if (_super) return _super(context);
-    return getPermission(permission)?.reduce(context);
+    return getPermission().reduce(context);
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION) as string;
-    const _super = getProperty(getCurrentWrapper(), `${permission}.summarize`);
+    const _super = getProperty(getCurrentWrapper(), "summarize");
     if (_super) return _super(context);
-    return getPermission(permission)?.summarize(context);
+    return getPermission().summarize(context);
 }

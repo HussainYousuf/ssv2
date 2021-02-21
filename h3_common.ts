@@ -86,25 +86,27 @@ function getEsConfig(store: string, permission: string) {
 }
 
 export function getCurrentWrapper(): any {
-    const type = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_TYPE);
-    switch (type) {
-        case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
-            return shopifyWrapper;
-        case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
-            return salesforceWrapper;
-        default:
-            log.error("common.getCurrentWrapper => unknown type", type);
-            break;
+    function getCurrentWrapper(): any {
+        const type = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_TYPE);
+        switch (type) {
+            case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
+                return shopifyWrapper;
+            case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
+                return salesforceWrapper;
+            default:
+                throw Error(`common.getCurrentWrapper => unknown type ${type}`);
+        }
     }
+    return getCurrentWrapper()[runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION) as string];
 }
 
-export function getPermission(permission: string) {
+export function getPermission() {
+    const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION);
     switch (permission) {
         case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
             return itemImport;
         default:
-            log.error("common.getPermission => unknown permission", permission);
-            break;
+            throw Error(`common.getPermission => unknown permission ${permission}`);
     }
 }
 
