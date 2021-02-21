@@ -4,9 +4,8 @@ import runtime from 'N/runtime';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper } from './h3_common';
+import { getCurrentWrapper, getProperty, functions } from './h3_common';
 import format from 'N/format';
-
 
 function init() {
     const store = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE);
@@ -23,8 +22,7 @@ function init() {
 
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    if (getWrapper()?.["ITEM_IMPORT"]?.["getInputData"]) getWrapper()["ITEM_IMPORT"]["getInputData"](context);
-    
+    const wrapper = getCurrentWrapper();
     const { filters, esConfig } = init();
     const maxEsModDateCol = search.createColumn({
         name: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE,
@@ -41,14 +39,12 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
     log.debug("item_import.getInputData => maxEsModDate", maxEsModDate);
 
-    return getWrapper()?.getItemsFromEs(maxEsModDate, esConfig);
-
+    return wrapper.getItemsFromEs(maxEsModDate, esConfig);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
+    const wrapper = getCurrentWrapper();
     const { store, filters, esConfig } = init();
-    const wrapper = getWrapper();
-    if (!wrapper) return;
     const esItem = wrapper.parseEsItem(context.value);
     const { esId, esModDate, esItemType } = esItem;
 
@@ -81,7 +77,8 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
             const values = value.trim().split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
-            if (functionName in wrapper.functions) wrapper.functions[functionName].apply({ nsRecord: nsItem, esRecord: esItem, esConfig }, args);
+            const _function = wrapper.functions[functionName] || functions[functionName];
+            _function && _function.apply({ nsRecord: nsItem, esRecord: esItem, esConfig }, args);
         }
 
         nsId = String(nsItem.save());

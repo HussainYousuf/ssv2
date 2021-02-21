@@ -85,7 +85,7 @@ function getEsConfig(store: string, permission: string) {
     return esConfig as { [key: string]: string; };
 }
 
-export function getWrapper(): any {
+export function getCurrentWrapper(): any {
     const type = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_TYPE);
     switch (type) {
         case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
@@ -93,18 +93,31 @@ export function getWrapper(): any {
         case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
             return salesforceWrapper;
         default:
-            log.error("common.getWrapper => unknown type", type);
+            log.error("common.getCurrentWrapper => unknown type", type);
             break;
     }
 }
 
-export function getPermission() {
-    const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION);
+export function getPermission(permission: string) {
     switch (permission) {
         case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
             return itemImport;
         default:
-            log.error("common.getWrapper => unknown permission", permission);
+            log.error("common.getPermission => unknown permission", permission);
             break;
     }
 }
+
+export function getProperty(object: any, property: string) {
+    for (const key of property.split(".")) {
+        object = object?.[key];
+    }
+    return object;
+}
+
+export const functions: any = {
+    setValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
+        const value = getProperty(this.esRecord, esField);
+        this.nsRecord.setValue(nsField, value);
+    }
+};
