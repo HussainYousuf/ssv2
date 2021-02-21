@@ -4,28 +4,28 @@
  */
 
 import { EntryPoints } from 'N/types';
-import { getCurrentWrapper, getPermission, getProperty } from './h3_common';
+import { getWrapper, getPermission, getProperty } from './h3_common';
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const _super = getProperty(getCurrentWrapper(), "getInputData");
+    const _super = getProperty(getWrapper(), "getInputData");
     if (_super) return _super(context);
     return getPermission().getInputData(context);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
-    const _super = getProperty(getCurrentWrapper(), "map");
+    const _super = getProperty(getWrapper(), "map");
     if (_super) return _super(context);
     return getPermission().map(context);
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    const _super = getProperty(getCurrentWrapper(), "reduce");
+    const _super = getProperty(getWrapper(), "reduce");
     if (_super) return _super(context);
     return getPermission().reduce(context);
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    const _super = getProperty(getCurrentWrapper(), "summarize");
+    const _super = getProperty(getWrapper(), "summarize");
     if (_super) return _super(context);
     return getPermission().summarize(context);
 }

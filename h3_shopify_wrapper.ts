@@ -5,7 +5,7 @@ import constants from "./h3_constants";
 
 export const ITEM_IMPORT = {
 
-    getItemsFromEs(maxEsModDate: string | undefined, esConfig: any) {
+    getItems(maxEsModDate: string | undefined, esConfig: any) {
         const { ITEM_IMPORT_URL } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
         const response = https.get({
             url: esConfig[ITEM_IMPORT_URL] + `&updated_at_min=${maxEsModDate}`,
@@ -18,10 +18,10 @@ export const ITEM_IMPORT = {
         return JSON.parse(response).products;
     },
 
-    parseEsItem(item: string) {
+    parseItem(item: string) {
         const { id: esId, updated_at: esModDate } = JSON.parse(item);
         return { esId, esModDate: new Date(esModDate), esItemType: record.Type.INVENTORY_ITEM };
     }
-    
+
 };
 

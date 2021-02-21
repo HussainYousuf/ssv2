@@ -4,7 +4,7 @@ import runtime from 'N/runtime';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getCurrentWrapper, getProperty, functions } from './h3_common';
+import { getWrapper, getProperty, functions } from './h3_common';
 import format from 'N/format';
 
 function init() {
@@ -22,7 +22,7 @@ function init() {
 
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const wrapper = getCurrentWrapper();
+    const wrapper = getWrapper();
     const { filters, esConfig } = init();
     const maxEsModDateCol = search.createColumn({
         name: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE,
@@ -39,13 +39,13 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
     log.debug("item_import.getInputData => maxEsModDate", maxEsModDate);
 
-    return wrapper.getItemsFromEs(maxEsModDate, esConfig);
+    return wrapper.getItems(maxEsModDate, esConfig);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
-    const wrapper = getCurrentWrapper();
+    const wrapper = getWrapper();
     const { store, filters, esConfig } = init();
-    const esItem = wrapper.parseEsItem(context.value);
+    const esItem = wrapper.parseItem(context.value);
     const { esId, esModDate, esItemType } = esItem;
 
     filters.push("AND", [constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, esId]);
@@ -77,7 +77,7 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
             const values = value.trim().split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
-            const _function = wrapper.functions[functionName] || functions[functionName];
+            const _function = wrapper[functionName] || functions[functionName];
             _function && _function.apply({ nsRecord: nsItem, esRecord: esItem, esConfig }, args);
         }
 

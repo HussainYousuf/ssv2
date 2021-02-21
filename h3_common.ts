@@ -85,8 +85,8 @@ function getEsConfig(store: string, permission: string) {
     return esConfig as { [key: string]: string; };
 }
 
-export function getCurrentWrapper(): any {
-    function getCurrentWrapper(): any {
+export function getWrapper(): any {
+    function getWrapper(): any {
         const type = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_TYPE);
         switch (type) {
             case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
@@ -94,10 +94,10 @@ export function getCurrentWrapper(): any {
             case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
                 return salesforceWrapper;
             default:
-                throw Error(`common.getCurrentWrapper => unknown type ${type}`);
+                throw Error(`common.getWrapper => unknown type ${type}`);
         }
     }
-    return getCurrentWrapper()[runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION) as string];
+    return getWrapper()[runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION) as string];
 }
 
 export function getPermission() {
