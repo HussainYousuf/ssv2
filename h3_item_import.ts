@@ -92,6 +92,7 @@ function process(wrapper: any, esItem: any) {
     }
 
     rsRecord.save();
+
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
@@ -102,8 +103,10 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
+    const wrapper = getWrapper();
     context.values.map(value => {
-
+        const esItem = wrapper.parseItem(value);
+        process(wrapper, esItem);
     });
 }
 

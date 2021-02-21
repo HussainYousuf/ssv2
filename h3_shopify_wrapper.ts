@@ -9,7 +9,7 @@ export const ITEM_IMPORT = {
     getItems(maxEsModDate: string | undefined, esConfig: any) {
         const { ITEM_IMPORT_URL } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
         const response = https.get({
-            url: esConfig[ITEM_IMPORT_URL] + `&updated_at_min=${maxEsModDate}`,
+            url: maxEsModDate ? esConfig[ITEM_IMPORT_URL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_URL],
             headers: {
                 "Content-Type": "application/json"
             }
@@ -30,7 +30,7 @@ export const ITEM_IMPORT = {
     },
 
     shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: [any], nsId: string; }) {
-        esItem.variants?.map((value, index) => context.write(String(index), { ...value, parentNsId: esItem.nsId }));
+        esItem.variants?.map((value, index) => esItem.nsId && context.write(String(index), { ...value, parentNsId: esItem.nsId }));
     }
 
 };
