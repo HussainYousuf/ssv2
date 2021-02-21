@@ -2,6 +2,7 @@ import log from 'N/log';
 import https from 'N/https';
 import record from "N/record";
 import constants from "./h3_constants";
+import { EntryPoints } from 'N/types';
 
 export const ITEM_IMPORT = {
 
@@ -19,8 +20,17 @@ export const ITEM_IMPORT = {
     },
 
     parseItem(item: string) {
-        const { id: esId, updated_at: esModDate } = JSON.parse(item);
-        return { esId, esModDate: new Date(esModDate), esItemType: record.Type.INVENTORY_ITEM };
+        const esItem = JSON.parse(item);
+        return {
+            ...esItem,
+            esId: esItem.id,
+            esModDate: new Date(esItem.updated_at),
+            recType: record.Type.INVENTORY_ITEM,
+        };
+    },
+
+    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: [any], nsId: string; }) {
+        esItem.variants?.map((value, index) => context.write(String(index), { ...value, parentNsId: esItem.nsId }));
     }
 
 };

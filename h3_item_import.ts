@@ -4,7 +4,7 @@ import runtime from 'N/runtime';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, getProperty, functions } from './h3_common';
+import { getWrapper, functions } from './h3_common';
 import format from 'N/format';
 
 function init() {
@@ -42,11 +42,10 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     return wrapper.getItems(maxEsModDate, esConfig);
 }
 
-export function map(context: EntryPoints.MapReduce.mapContext) {
-    const wrapper = getWrapper();
+function process(wrapper: any, esItem: any) {
+
     const { store, filters, esConfig } = init();
-    const esItem = wrapper.parseItem(context.value);
-    const { esId, esModDate, esItemType } = esItem;
+    const { esId, esModDate, recType } = esItem;
 
     filters.push("AND", [constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, esId]);
 
@@ -70,8 +69,8 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 
     try {
         const nsItem = nsId ?
-            record.load({ type: esItemType, id: nsId, isDynamic: true }) :
-            record.create({ type: esItemType, isDynamic: true });
+            record.load({ type: recType, id: nsId, isDynamic: true }) :
+            record.create({ type: recType, isDynamic: true });
 
         for (const value of esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.ITEM_IMPORT_FIELDMAP] as [string]) {
             const values = value.trim().split(/\s+/);
@@ -82,6 +81,8 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
         }
 
         nsId = String(nsItem.save());
+        esItem.nsId = nsId;
+
         rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID, value: nsId })
             .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS_NAME, value: constants.LIST_RECORDS.STATUSES.IMPORTED })
             .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, value: "" });
@@ -91,10 +92,19 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
     }
 
     rsRecord.save();
+}
 
+export function map(context: EntryPoints.MapReduce.mapContext) {
+    const wrapper = getWrapper();
+    const esItem = wrapper.parseItem(context.value);
+    process(wrapper, esItem);
+    wrapper.shouldReduce?.(context, esItem);
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
+    context.values.map(value => {
+
+    });
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
