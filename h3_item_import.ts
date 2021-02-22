@@ -72,7 +72,7 @@ function process(wrapper: any, esItem: any) {
             record.load({ type: recType, id: nsId, isDynamic: true }) :
             record.create({ type: recType, isDynamic: true });
 
-        for (const value of esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.ITEM_IMPORT_FIELDMAP] as [string]) {
+        for (const value of esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.ITEM_IMPORT_FUNCTION] as [string]) {
             const values = value.trim().split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
@@ -80,8 +80,9 @@ function process(wrapper: any, esItem: any) {
             _function && _function.apply({ nsRecord: nsItem, esRecord: esItem, esConfig }, args);
         }
 
-        nsId = String(nsItem.save());
-        esItem.nsId = nsId;
+        esItem.nsId = nsId = String(nsItem.save({
+            ignoreMandatoryFields: true
+        }));
 
         rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID, value: nsId })
             .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS_NAME, value: constants.LIST_RECORDS.STATUSES.IMPORTED })
@@ -91,7 +92,9 @@ function process(wrapper: any, esItem: any) {
             .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, value: error.message });
     }
 
-    rsRecord.save();
+    rsRecord.save({
+        ignoreMandatoryFields: true
+    });
 
 }
 

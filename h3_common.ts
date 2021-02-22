@@ -53,11 +53,11 @@ export function isCurrentScriptRunning() {
 
 function getEsConfig(store: string, permission: string) {
     const esConfig = {};
-    const { ITEM_IMPORT_FIELDMAP, TYPE, URL, ACCESSTOKEN } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+    const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION, TYPE, URL, ACCESSTOKEN } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
     function callback(this: any, result: search.Result) {
         const key = result.getValue(result.columns[0].name) as string;
         const value = result.getValue(result.columns[1].name) as string;
-        if ([ITEM_IMPORT_FIELDMAP].includes(key)) this[key] ? this[key].push(value) : this[key] = [value];
+        if ([ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION].includes(key)) this[key] ? this[key].push(value) : this[key] = [value];
         else this[key] = value;
     }
     searchRecords(
