@@ -45,6 +45,14 @@ export const ITEM_IMPORT = {
         });
     },
 
+    setParentValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
+        !this.esRecord.productNsId && ITEM_IMPORT.setValue.call(this, nsField, esField);
+    },
+
+    setChildValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
+        this.esRecord.productNsId && ITEM_IMPORT.setValue.call(this, nsField, esField);
+    },
+
     setParentRawValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, rawValue: string) {
         !this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
     },
@@ -53,9 +61,9 @@ export const ITEM_IMPORT = {
         this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
     },
 
-    // when you don't know ns field
     setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, arrField: any, esField: string, esValueField: string) {
         if (this.esRecord.productNsId) return;
+        // when you don't know ns field
         const { ITEM_IMPORT_FIELDMAP } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
         const fieldMap: { [key: string]: string; } = {};
         this.esConfig[ITEM_IMPORT_FIELDMAP].map((value: string) => {
@@ -72,17 +80,11 @@ export const ITEM_IMPORT = {
         });
     },
 
-    setChildMatrixOptions(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, esField: string, esValueField: string) {
+    setChildMatrixOptions(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }) {
         if (!this.esRecord.productNsId) return;
-        const { ITEM_IMPORT_FIELDMAP } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
-        const fieldMap: { [key: string]: string; } = {};
-        this.esConfig[ITEM_IMPORT_FIELDMAP].map((value: string) => {
-            const values = value.trim().split(/\s+/);
-            fieldMap[values[0]] = values[1];
-        });
-        const nsField = fieldMap[getProperty(this.esRecord, esField)];
-        const value = getProperty(this.esRecord, esValueField);
-        this.nsRecord.setText(nsField, value);
+        for (const [esField, nsField] of Object.entries(this.esRecord.optionFieldMap)) {
+            this.nsRecord.setText("matrixoption" + nsField as string, this.esRecord[esField]);
+        }
     },
 
 };
