@@ -44,6 +44,8 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
 function process(wrapper: any, esItem: any) {
 
+    log.debug("process => esItem", esItem);
+
     const { store, filters, esConfig } = init();
     const { esId, esModDate, recType } = esItem;
 
@@ -62,10 +64,10 @@ function process(wrapper: any, esItem: any) {
         record.load({ type: constants.RECORDS.RECORDS_SYNC.ID, id: rsId, isDynamic: true }) :
         record.create({ type: constants.RECORDS.RECORDS_SYNC.ID, isDynamic: true });
 
-    rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, value: store })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, value: esId })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, value: constants.LIST_RECORDS.RECORD_TYPES.ITEM })
-        .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, value: esModDate });
+    rsRecord.setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, store)
+        .setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, esId)
+        .setText(constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE, constants.LIST_RECORDS.RECORD_TYPES.ITEM)
+        .setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, esModDate);
 
     try {
         const nsItem = nsId ?
@@ -84,12 +86,12 @@ function process(wrapper: any, esItem: any) {
             ignoreMandatoryFields: true
         }));
 
-        rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID, value: nsId })
-            .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS_NAME, value: constants.LIST_RECORDS.STATUSES.IMPORTED })
-            .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, value: "" });
+        rsRecord.setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
+            .setText(constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.IMPORTED)
+            .setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, "");
     } catch (error) {
-        rsRecord.setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS_NAME, value: constants.LIST_RECORDS.STATUSES.FAILED })
-            .setValue({ fieldId: constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, value: error.message });
+        rsRecord.setText(constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.FAILED)
+            .setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, error.message);
     }
 
     rsRecord.save({

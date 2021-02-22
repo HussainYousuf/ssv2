@@ -4,7 +4,7 @@
  */
 
 import { EntryPoints } from 'N/types';
-import { getWrapper, getPermission, getProperty } from './h3_common';
+import { getWrapper, getPermission } from './h3_common';
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
     return getWrapper().getInputData?.(context) || getPermission().getInputData(context);
