@@ -39,7 +39,6 @@ export const ITEM_IMPORT = {
     },
 
     setValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
-        log.debug("setValue", { nsField, esField });
         esField.split("|").reverse().map(esField => {
             const value = getProperty(this.esRecord, esField);
             value && this.nsRecord.setValue(nsField, value);
@@ -55,12 +54,10 @@ export const ITEM_IMPORT = {
     },
 
     setParentRawValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, rawValue: string) {
-        log.debug("setParentRawValue", { nsField, rawValue });
         !this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
     },
 
     setChildRawValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, rawValue: string) {
-        log.debug("setChildRawValue", { nsField, rawValue });
         this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
     },
 
@@ -80,7 +77,6 @@ export const ITEM_IMPORT = {
             this.esRecord.optionFieldMap[`option${index + 1}`] = nsField;
             const value = getProperty(obj, esValueField);
             this.nsRecord.setText(nsField, value);
-            log.debug("setParentMatrixOptions", { nsField, value });
         });
     },
 

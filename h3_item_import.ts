@@ -54,8 +54,11 @@ function process(wrapper: any, esItem: any) {
     const rsSearch = search.create({
         type: constants.RECORDS.RECORDS_SYNC.ID,
         filters,
-        columns: [constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID]
+        columns: [constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID, constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE]
     }).run().getRange(0, 1)[0];
+
+    const rsEsModDate = rsSearch?.getValue(constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE) as string;
+    if (rsEsModDate && (format.parse({ type: format.Type.DATETIMETZ, value: rsEsModDate }) as Date).getTime() == esModDate.getTime()) return;
 
     const rsId = rsSearch?.id;
     let nsId = rsSearch?.getValue(constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID) as string;
