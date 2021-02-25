@@ -7,15 +7,17 @@ import constants from './h3_constants';
 import { getWrapper, functions } from './h3_common';
 import format from 'N/format';
 
+const { EXTERNAL_STORE, RECORD_TYPE, RECORD_TYPE_NAME, NETSUITE_ID, EXTERNAL_ID, EXTERNAL_MODIFICATION_DATE, STATUS, STATUS_NAME, ERROR_LOG } = constants.RECORDS.RECORDS_SYNC.FIELDS;
+
 function init() {
     const store = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE);
     const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
     const filters = [
-        [constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
+        [EXTERNAL_STORE, search.Operator.IS, store],
         "AND",
-        [constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS_NAME, search.Operator.IS, constants.LIST_RECORDS.STATUSES.IMPORTED],
+        [STATUS_NAME, search.Operator.IS, constants.LIST_RECORDS.STATUSES.IMPORTED],
         "AND",
-        [constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM]
+        [RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM]
     ];
     return { store, filters, esConfig };
 }
@@ -25,7 +27,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     const wrapper = getWrapper();
     const { filters, esConfig } = init();
     const maxEsModDateCol = search.createColumn({
-        name: constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE,
+        name: EXTERNAL_MODIFICATION_DATE,
         summary: search.Summary.MAX,
     });
 
@@ -49,28 +51,28 @@ function process(wrapper: any, esItem: any) {
     const { store, filters, esConfig } = init();
     const { esId, esModDate, recType } = esItem;
 
-    filters.push("AND", [constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, esId]);
+    filters.push("AND", [EXTERNAL_ID, search.Operator.IS, esId]);
 
     const rsSearch = search.create({
         type: constants.RECORDS.RECORDS_SYNC.ID,
         filters,
-        columns: [constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID, constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE]
+        columns: [NETSUITE_ID, EXTERNAL_MODIFICATION_DATE]
     }).run().getRange(0, 1)[0];
 
-    const rsEsModDate = rsSearch?.getValue(constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE) as string;
+    const rsEsModDate = rsSearch?.getValue(EXTERNAL_MODIFICATION_DATE) as string;
     if (rsEsModDate && (format.parse({ type: format.Type.DATETIMETZ, value: rsEsModDate }) as Date).getTime() == esModDate.getTime()) return;
 
     const rsId = rsSearch?.id;
-    let nsId = rsSearch?.getValue(constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID) as string;
+    let nsId = rsSearch?.getValue(NETSUITE_ID) as string;
 
     const rsRecord = rsId ?
         record.load({ type: constants.RECORDS.RECORDS_SYNC.ID, id: rsId, isDynamic: true }) :
         record.create({ type: constants.RECORDS.RECORDS_SYNC.ID, isDynamic: true });
 
-    rsRecord.setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_STORE, store)
-        .setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_ID, esId)
-        .setText(constants.RECORDS.RECORDS_SYNC.FIELDS.RECORD_TYPE, constants.LIST_RECORDS.RECORD_TYPES.ITEM)
-        .setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, esModDate);
+    rsRecord.setValue(EXTERNAL_STORE, store)
+        .setValue(EXTERNAL_ID, esId)
+        .setText(RECORD_TYPE, constants.LIST_RECORDS.RECORD_TYPES.ITEM)
+        .setValue(EXTERNAL_MODIFICATION_DATE, esModDate);
 
     try {
         const nsItem = nsId ?
@@ -89,12 +91,14 @@ function process(wrapper: any, esItem: any) {
             ignoreMandatoryFields: true
         }));
 
-        rsRecord.setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
-            .setText(constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.IMPORTED)
-            .setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, "");
+        rsRecord.setValue(NETSUITE_ID, nsId)
+            .setText(STATUS, constants.LIST_RECORDS.STATUSES.IMPORTED)
+            .setValue(ERROR_LOG, "");
+
+        log.debug("Success", `${constants.LIST_RECORDS.RECORD_TYPES.ITEM} with id ${nsId}, ${constants.LIST_RECORDS.STATUSES.IMPORTED}`)
     } catch (error) {
-        rsRecord.setText(constants.RECORDS.RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.FAILED)
-            .setValue(constants.RECORDS.RECORDS_SYNC.FIELDS.ERROR_LOG, error.message);
+        rsRecord.setText(STATUS, constants.LIST_RECORDS.STATUSES.FAILED)
+            .setValue(ERROR_LOG, error.message);
     }
 
     rsRecord.save({
