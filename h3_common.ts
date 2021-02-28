@@ -7,8 +7,10 @@ import task from "N/task";
 import * as shopifyWrapper from "./h3_shopify_wrapper";
 import * as salesforceWrapper from "./h3_salesforce_wrapper";
 import * as itemImport from "./h3_item_import";
+import * as itemExport from "./h3_item_export";
 
-export function isScriptRunning(scriptIds: [string]) {
+
+export function isScriptRunning(scriptIds: string[]) {
     const executingStatuses = ["PENDING", "PROCESSING", "RESTART", "RETRY"];
     return Boolean(search.create({
         type: search.Type.SCHEDULED_SCRIPT_INSTANCE,
@@ -26,7 +28,7 @@ export function searchRecords(callback: any, type: search.SearchCreateOptions['t
     }
 }
 
-export function scheduleScript(storePermissions: [{ store: string, permission: string; }] | []) {
+export function scheduleScript(storePermissions: { store: string, permission: string; }[]) {
     if (storePermissions.length == 0) return;
     log.debug("common.scheduleScript => storePermissions", storePermissions);
     const { store, permission } = storePermissions[0];
@@ -105,6 +107,8 @@ export function getPermission() {
     switch (permission) {
         case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
             return itemImport;
+        case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_EXPORT:
+            return itemExport;
         default:
             throw Error(`common.getPermission => unknown permission ${permission}`);
     }

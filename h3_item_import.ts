@@ -15,9 +15,9 @@ function init() {
     const filters = [
         [EXTERNAL_STORE, search.Operator.IS, store],
         "AND",
-        [STATUS_NAME, search.Operator.IS, constants.LIST_RECORDS.STATUSES.IMPORTED],
+        [RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM],
         "AND",
-        [RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM]
+        [STATUS_NAME, search.Operator.IS, constants.LIST_RECORDS.STATUSES.IMPORTED],
     ];
     return { store, filters, esConfig };
 }
@@ -51,7 +51,8 @@ function process(wrapper: any, esItem: any) {
     const { store, filters, esConfig } = init();
     const { esId, esModDate, recType } = esItem;
 
-    filters.push("AND", [EXTERNAL_ID, search.Operator.IS, esId]);
+    filters.pop();
+    filters.push([EXTERNAL_ID, search.Operator.IS, esId]);
 
     const rsSearch = search.create({
         type: constants.RECORDS.RECORDS_SYNC.ID,
@@ -95,7 +96,8 @@ function process(wrapper: any, esItem: any) {
             .setText(STATUS, constants.LIST_RECORDS.STATUSES.IMPORTED)
             .setValue(ERROR_LOG, "");
 
-        log.debug("Success", `${constants.LIST_RECORDS.RECORD_TYPES.ITEM} with id ${nsId}, ${constants.LIST_RECORDS.STATUSES.IMPORTED}`)
+        log.debug("Success", `${constants.LIST_RECORDS.RECORD_TYPES.ITEM} with id ${nsId}, ${constants.LIST_RECORDS.STATUSES.IMPORTED}`);
+        
     } catch (error) {
         rsRecord.setText(STATUS, constants.LIST_RECORDS.STATUSES.FAILED)
             .setValue(ERROR_LOG, error.message);

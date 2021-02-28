@@ -3,7 +3,19 @@ import https from 'N/https';
 import record from "N/record";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getProperty } from './h3_common';
+import { getProperty, searchRecords } from './h3_common';
+
+export const ITEM_EXPORT = {
+
+    getItems(maxEsModDate: string | undefined, esConfig: any) {
+        const { ITEM_IMPORT_URL } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+        const callbackContext = { items: [] };
+        
+        log.debug("shopify_wrapper.getItems => response", response);
+        return JSON.parse(response).products;
+    }
+
+};
 
 export const ITEM_IMPORT = {
 
@@ -16,7 +28,7 @@ export const ITEM_IMPORT = {
             }
         }).body;
 
-        log.debug("shopify_wrapper.getItemsFromEs => response", response);
+        log.debug("shopify_wrapper.getItems => response", response);
         return JSON.parse(response).products;
     },
 
