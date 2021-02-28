@@ -1,3 +1,4 @@
+import format from 'N/format';
 import search from 'N/search';
 import log from 'N/log';
 import https from 'N/https';
@@ -9,7 +10,13 @@ import { getFormattedDateTime, getProperty, searchRecords } from './h3_common';
 export const ITEM_EXPORT = {
 
     getItems(maxNsModDate: string | Date | undefined, esConfig: any) {
-        const { ITEM_EXPORT_FILTERS, ITEM_EXPORT_LIMIT } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+        const { ITEM_EXPORT_FILTERS, ITEM_EXPORT_LIMIT, ITEM_EXPORT_COLUMNS } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+
+        const columns = JSON.parse(esConfig[ITEM_EXPORT_COLUMNS]);
+        columns.push(
+            search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" }),
+            search.createColumn({ name: "formulatext_lastquantityavailablechange", formula: "to_char({lastquantityavailablechange},'yyyy-mm-dd hh24:mi:ss')" })
+        );
 
         const filters = search.load({
             id: esConfig[ITEM_EXPORT_FILTERS]
@@ -27,9 +34,23 @@ export const ITEM_EXPORT = {
 
         return search.create({
             type: search.Type.ITEM,
-            filters
+            filters,
+            columns
         }).run().getRange(0, Number(esConfig[ITEM_EXPORT_LIMIT]));
+    },
 
+    parseItem(item: string) {
+        const nsItem = JSON.parse(item);
+        const { formulatext_modified, formulatext_lastquantityavailablechange } = nsItem.values;
+        const modified = new Date((formulatext_modified as string).replace(/\s+/, "T") + "Z");
+        const lastquantityavailablechange = formulatext_lastquantityavailablechange ? new Date((formulatext_lastquantityavailablechange as string).replace(/\s+/, "T") + "Z") : new Date(0);
+        const maxNsModDate = modified >= lastquantityavailablechange ? modified : lastquantityavailablechange;
+        return {
+            ...nsItem.values,
+            nsId: nsItem.id,
+            nsModDate: format.format({ value: maxNsModDate, type: format.Type.DATETIMETZ, timezone: format.Timezone.GMT }),
+            recType: nsItem.recordType,
+        };
     }
 
 };
