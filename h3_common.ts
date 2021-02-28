@@ -9,6 +9,11 @@ import * as salesforceWrapper from "./h3_salesforce_wrapper";
 import * as itemImport from "./h3_item_import";
 import * as itemExport from "./h3_item_export";
 
+export function getFormattedDateTime(dateObj: Date) {
+    const date = dateObj.toISOString().split('T')[0];
+    const time = dateObj.toTimeString().split(/\s+/)[0];
+    return `${date} ${time}`;
+}
 
 export function isScriptRunning(scriptIds: string[]) {
     const executingStatuses = ["PENDING", "PROCESSING", "RESTART", "RETRY"];

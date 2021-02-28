@@ -57,7 +57,9 @@ export default {
                 ITEM_IMPORT_FILTERS: "item_import_filters",
                 ITEM_IMPORT_FIELDMAP: "item_import_fieldmap",
                 ITEM_IMPORT_FUNCTION: "item_import_function",
-                ITEM_IMPORT_URL: "item_import_url"
+                ITEM_IMPORT_URL: "item_import_url",
+                ITEM_EXPORT_FILTERS: "item_export_filters",
+                ITEM_EXPORT_LIMIT: "item_export_limit"
             },
             PERMISSIONS: {
                 ITEM_IMPORT: "ITEM_IMPORT",

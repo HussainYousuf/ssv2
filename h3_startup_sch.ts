@@ -8,9 +8,10 @@ import search from 'N/search';
 import constants from './h3_constants';
 import { searchRecords, scheduleScript } from './h3_common';
 
-const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 export function execute(context: EntryPoints.Scheduled.executeContext) {
+    const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+    
     const callbackContext: { storePermissions: { store: string, permission: string; }[]; } = { storePermissions: [] };
     function callback(this: typeof callbackContext, result: search.Result) {
         const store = result.getValue(result.columns[0].name) as string;

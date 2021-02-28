@@ -1,18 +1,35 @@
+import search from 'N/search';
 import log from 'N/log';
 import https from 'N/https';
 import record from "N/record";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getProperty, searchRecords } from './h3_common';
+import { getFormattedDateTime, getProperty, searchRecords } from './h3_common';
 
 export const ITEM_EXPORT = {
 
-    getItems(maxEsModDate: string | undefined, esConfig: any) {
-        const { ITEM_IMPORT_URL } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
-        const callbackContext = { items: [] };
-        
-        log.debug("shopify_wrapper.getItems => response", response);
-        return JSON.parse(response).products;
+    getItems(maxNsModDate: string | Date | undefined, esConfig: any) {
+        const { ITEM_EXPORT_FILTERS, ITEM_EXPORT_LIMIT } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+
+        const filters = search.load({
+            id: esConfig[ITEM_EXPORT_FILTERS]
+        }).filterExpression;
+
+        if (maxNsModDate) {
+            maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
+            filters.length && filters.push("AND");
+            filters.push([
+                [`formulatext: CASE WHEN to_char({modified},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
+                "OR",
+                [`formulatext: CASE WHEN to_char({lastquantityavailablechange},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
+            ]);
+        }
+
+        return search.create({
+            type: search.Type.ITEM,
+            filters
+        }).run().getRange(0, Number(esConfig[ITEM_EXPORT_LIMIT]));
+
     }
 
 };
@@ -73,7 +90,7 @@ export const ITEM_IMPORT = {
         this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
     },
 
-    setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, arrField: any, esField: string, esValueField: string) {
+    setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, arrField: string, esField: string, esValueField: string) {
         if (this.esRecord.productNsId) return;
         // when you don't know ns field
         const { ITEM_IMPORT_FIELDMAP } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
