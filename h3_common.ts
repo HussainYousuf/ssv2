@@ -10,9 +10,7 @@ import * as itemImport from "./h3_item_import";
 import * as itemExport from "./h3_item_export";
 
 export function getFormattedDateTime(dateObj: Date) {
-    const date = dateObj.toISOString().split('T')[0];
-    const time = dateObj.toTimeString().split(/\s+/)[0];
-    return `${date} ${time}`;
+    return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60 * 1000).toISOString().replace("T", " ").slice(0, -5);
 }
 
 export function isScriptRunning(scriptIds: string[]) {
@@ -127,8 +125,13 @@ export function getProperty(object: any, property: string) {
 }
 
 export const functions: any = {
-    setValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
-        const value = getProperty(this.esRecord, esField);
-        this.nsRecord.setValue(nsField, value);
-    }
+    setValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esFields: string) {
+        for (const esField of esFields.split("|")) {
+            const value = getProperty(this.esRecord, esField);
+            if (value) {
+                this.nsRecord.setValue(nsField, value);
+                break;
+            }
+        }
+    },
 };

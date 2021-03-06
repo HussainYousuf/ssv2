@@ -10,17 +10,29 @@ import search from "N/search";
 import file from "N/file";
 import runtime from "N/runtime";
 import constants from "./h3_constants";
+import https from "N/https";
 // import https from "N/https";
 
 
 export function onRequest(context: EntryPoints.Suitelet.onRequestContext) {
     const { request, response } = context;
     if (request.method == "GET") {
-        const html = getHtml();
-        response.write(html);
+        // const html = getHtml();
+        // response.write(html);
+        const res = https.get({
+            url: "https://api-lab.kube.jooraccess.com/v2/categories",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": `Oauth2 MjVkMTdiZjY1ODA0NDhjZDhmMmMzMzNlY2RmNmEyNzg=`
+            }
+        });
+        response.write("working...");
+        response.write(res.body);
+
     }
     else if (request.method == "POST") {
-        
+
     }
 };
 

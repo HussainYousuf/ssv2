@@ -5,7 +5,7 @@ import https from 'N/https';
 import record from "N/record";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, searchRecords } from './h3_common';
+import { getFormattedDateTime, getProperty, functions } from './h3_common';
 
 export const ITEM_EXPORT = {
 
@@ -42,8 +42,8 @@ export const ITEM_EXPORT = {
     parseItem(item: string) {
         const nsItem = JSON.parse(item);
         const { formulatext_modified, formulatext_lastquantityavailablechange } = nsItem.values;
-        const modified = new Date((formulatext_modified as string).replace(/\s+/, "T") + "Z");
-        const lastquantityavailablechange = formulatext_lastquantityavailablechange ? new Date((formulatext_lastquantityavailablechange as string).replace(/\s+/, "T") + "Z") : new Date(0);
+        const modified = new Date((formulatext_modified as string).replace(" ", "T") + "Z");
+        const lastquantityavailablechange = formulatext_lastquantityavailablechange ? new Date((formulatext_lastquantityavailablechange as string).replace(" ", "T") + "Z") : new Date(0);
         const maxNsModDate = modified >= lastquantityavailablechange ? modified : lastquantityavailablechange;
         return {
             ...nsItem.values,
@@ -80,7 +80,7 @@ export const ITEM_IMPORT = {
         };
     },
 
-    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: [any], optionFieldMap: { [key: string]: string; }, nsId: string; }) {
+    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: any[], optionFieldMap: { [key: string]: string; }, nsId: string; }) {
         esItem.variants?.map((value, index) => esItem.nsId && context.write(String(index), {
             ...value,
             productNsId: esItem.nsId,
@@ -88,19 +88,12 @@ export const ITEM_IMPORT = {
         }));
     },
 
-    setValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
-        esField.split("|").reverse().map(esField => {
-            const value = getProperty(this.esRecord, esField);
-            value && this.nsRecord.setValue(nsField, value);
-        });
-    },
-
     setParentValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
-        !this.esRecord.productNsId && ITEM_IMPORT.setValue.call(this, nsField, esField);
+        !this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
     },
 
     setChildValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
-        this.esRecord.productNsId && ITEM_IMPORT.setValue.call(this, nsField, esField);
+        this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
     },
 
     setParentRawValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, rawValue: string) {
