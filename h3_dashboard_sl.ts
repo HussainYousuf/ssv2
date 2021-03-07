@@ -4,6 +4,7 @@
  *@NModuleScope Public
  */
 
+import record from 'N/record';
 
 import { EntryPoints } from 'N/types';
 import search from "N/search";
@@ -19,16 +20,23 @@ export function onRequest(context: EntryPoints.Suitelet.onRequestContext) {
     if (request.method == "GET") {
         // const html = getHtml();
         // response.write(html);
-        const res = https.get({
-            url: "https://api-lab.kube.jooraccess.com/v2/categories",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "Authorization": `Oauth2 MjVkMTdiZjY1ODA0NDhjZDhmMmMzMzNlY2RmNmEyNzg=`
-            }
-        });
-        response.write("working...");
-        response.write(res.body);
+        // const res = https.get({
+        //     url: "https://api-lab.kube.jooraccess.com/v2/categories",
+        //     headers: {
+        //         "Content-Type": "application/json",
+        //         "Accept": "application/json",
+        //         "Authorization": `Oauth2 MjVkMTdiZjY1ODA0NDhjZDhmMmMzMzNlY2RmNmEyNzg=`
+        //     }
+        // });
+        // response.write("working...");
+        response.write(JSON.stringify({
+            search: search.create({
+                type: search.Type.ITEM,
+                filters: ["parent", "noneof", "@NONE@"],
+                columns: ["itemid", "parent", "subsidiary", search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })]
+            }).run().getRange(0, 1000),
+            // record: record.load({ type: record.Type.INVENTORY_ITEM, id: 1428 })
+        }));
 
     }
     else if (request.method == "POST") {

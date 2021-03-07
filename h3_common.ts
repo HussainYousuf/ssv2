@@ -134,4 +134,24 @@ export const functions: any = {
             }
         }
     },
+
+    setRecordValue(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+        for (const nsField of nsFields.split("|")) {
+            const value = this.nsRecord.record.getValue(nsField);
+            if (value) {
+                this.esRecord[esField] = value;
+                break;
+            }
+        }
+    },
+
+    setRecordText(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+        for (const nsField of nsFields.split("|")) {
+            const value = this.nsRecord.getText(nsField);
+            if (value) {
+                this.esRecord[esField] = value;
+                break;
+            }
+        }
+    },
 };

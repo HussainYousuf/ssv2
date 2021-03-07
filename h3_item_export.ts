@@ -7,7 +7,7 @@ import constants from './h3_constants';
 import { getWrapper, functions } from './h3_common';
 import format from 'N/format';
 
-const { RECORDS_SYNC } = constants.RECORDS;
+const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 function init() {
     const store = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE);
@@ -32,7 +32,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     });
 
     let maxNsModDate: string | Date = search.create({
-        type: constants.RECORDS.RECORDS_SYNC.ID,
+        type: RECORDS_SYNC.ID,
         filters,
         columns: [maxNsModDateCol]
     }).run().getRange(0, 1)[0]?.getValue(maxNsModDateCol) as string;
@@ -67,8 +67,8 @@ function process(wrapper: any, nsItem: any) {
     let esId = rsSearch?.getValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID) as string;
 
     const rsRecord = rsId ?
-        record.load({ type: constants.RECORDS.RECORDS_SYNC.ID, id: rsId, isDynamic: true }) :
-        record.create({ type: constants.RECORDS.RECORDS_SYNC.ID, isDynamic: true });
+        record.load({ type: RECORDS_SYNC.ID, id: rsId, isDynamic: true }) :
+        record.create({ type: RECORDS_SYNC.ID, isDynamic: true });
 
     rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_STORE, store)
         .setValue(RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
@@ -76,22 +76,31 @@ function process(wrapper: any, nsItem: any) {
         .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, nsModDate);
 
     try {
-        
-        // make post request here
+        const esItem = {};
 
-        for (const value of esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.ITEM_IMPORT_FUNCTION] as [string]) {
+        for (const value of esConfig[EXTERNAL_STORES_CONFIG.KEYS.ITEM_EXPORT_FUNCTION] as [string]) {
             const values = value.trim().split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
             const _function = wrapper[functionName] || functions[functionName];
-            _function && _function.apply({ nsRecord: nsItem, esRecord: nsItem, esConfig }, args);
+            _function && _function.apply({
+                nsRecord: { record: record.load({ type: recType, id: nsId, isDynamic: true }), search: nsItem },
+                esRecord: esItem,
+                esConfig
+            }, args);
         }
 
-        rsRecord.setValue(RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
+        nsItem.esItem = esItem;
+        esId = esId ? wrapper.putItem?.(esItem, esId) : wrapper.postItem?.(esItem);
+
+        if (!esId) return;
+
+        rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, esId)
             .setText(RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.EXPORTED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, "");
 
         log.debug("Success", `${constants.LIST_RECORDS.RECORD_TYPES.ITEM} with id ${nsId}, ${constants.LIST_RECORDS.STATUSES.EXPORTED}`);
+
     } catch (error) {
         rsRecord.setText(RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.FAILED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, error.message);

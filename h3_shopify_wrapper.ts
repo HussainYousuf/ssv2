@@ -25,6 +25,8 @@ export const ITEM_EXPORT = {
         if (maxNsModDate) {
             maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
             filters.length && filters.push("AND");
+            filters.push(["parent", search.Operator.NONEOF, "@NONE@"]);
+            filters.push("AND");
             filters.push([
                 [`formulatext: CASE WHEN to_char({modified},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
                 "OR",
@@ -51,7 +53,60 @@ export const ITEM_EXPORT = {
             nsModDate: format.format({ value: maxNsModDate, type: format.Type.DATETIMETZ, timezone: format.Timezone.GMT }),
             recType: nsItem.recordType,
         };
-    }
+    },
+
+    setProductValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+        if (this.nsRecord.getValue("matrixtype") == "PARENT") {
+            if (this.esRecord.product) {
+                this.esRecord = this.esRecord.product;
+                functions.setRecordValue.call(this, esField, nsFields);
+            } else {
+                this.esRecord.product = {};
+                ITEM_EXPORT.setProductValue.call(this, esField, nsFields);
+            }
+        }
+    },
+
+    setVariantValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+        if (this.nsRecord.getValue("matrixtype") == "CHILD") {
+            if (this.esRecord.variant) {
+                this.esRecord = this.esRecord.variant;
+                functions.setRecordValue.call(this, esField, nsFields);
+            } else {
+                this.esRecord.variant = {};
+                ITEM_EXPORT.setVariantValue.call(this, esField, nsFields);
+            }
+        }
+    },
+
+    putItem(esItem: any, esId: string) {
+        const { ITEM_EXPORT_PUT_QUERY } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+        const response = JSON.parse(https.put({
+            url: ITEM_EXPORT_PUT_QUERY + esId + ".json",
+            body: JSON.stringify(esItem),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).body);
+
+        if (response.errors) throw Error(response.errors);
+        const id = response.product?.id || response.variant?.id;
+        return String(id);
+    },
+
+    // postItem(esItem: any) {
+    //     if (esItem.nsId && esItem.productNsId) {
+    //         const { nsId, productNsId } = esItem;
+    //         context;
+    //     } else {
+    //         const { ITEM_EXPORT_POST_QUERY } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+    //     }
+
+    // },
+
+    shouldReduce(context: EntryPoints.MapReduce.mapContext, nsItem: any) {
+        nsItem.parent[0] && context.write(nsItem.parent[0].value, nsItem);
+    },
 
 };
 
@@ -80,7 +135,7 @@ export const ITEM_IMPORT = {
         };
     },
 
-    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: any[], optionFieldMap: { [key: string]: string; }, nsId: string; }) {
+    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: any[], optionFieldMap: any, nsId: string; }) {
         esItem.variants?.map((value, index) => esItem.nsId && context.write(String(index), {
             ...value,
             productNsId: esItem.nsId,

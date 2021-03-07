@@ -60,7 +60,11 @@ export default {
                 ITEM_IMPORT_URL: "item_import_url",
                 ITEM_EXPORT_FILTERS: "item_export_filters",
                 ITEM_EXPORT_LIMIT: "item_export_limit",
-                ITEM_EXPORT_COLUMNS: "item_export_columns"
+                ITEM_EXPORT_COLUMNS: "item_export_columns",
+                ITEM_EXPORT_FUNCTION: "item_export_function",
+                ITEM_EXPORT_PUT_QUERY: "item_export_put_query",
+                ITEM_EXPORT_POST_QUERY: "item_export_post_query"
+
             },
             PERMISSIONS: {
                 ITEM_IMPORT: "ITEM_IMPORT",
