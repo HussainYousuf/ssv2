@@ -53,17 +53,15 @@ export default {
                 URL: "url",
                 KEY: "key",
                 ACCESSTOKEN: "accesstoken",
-                ITEM_IMPORT_QUERY: "item_import_query",
-                ITEM_IMPORT_FILTERS: "item_import_filters",
                 ITEM_IMPORT_FIELDMAP: "item_import_fieldmap",
                 ITEM_IMPORT_FUNCTION: "item_import_function",
-                ITEM_IMPORT_URL: "item_import_url",
+                ITEM_IMPORT_GETURL: "item_import_geturl",
                 ITEM_EXPORT_FILTERS: "item_export_filters",
                 ITEM_EXPORT_LIMIT: "item_export_limit",
                 ITEM_EXPORT_COLUMNS: "item_export_columns",
                 ITEM_EXPORT_FUNCTION: "item_export_function",
-                ITEM_EXPORT_PUT_QUERY: "item_export_put_query",
-                ITEM_EXPORT_POST_QUERY: "item_export_post_query"
+                ITEM_EXPORT_PUTURL: "item_export_puturl",
+                ITEM_EXPORT_POSTURL: "item_export_posturl"
 
             },
             PERMISSIONS: {

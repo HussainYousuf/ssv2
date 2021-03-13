@@ -5,7 +5,6 @@
  */
 
 import record from 'N/record';
-
 import { EntryPoints } from 'N/types';
 import search from "N/search";
 import file from "N/file";
@@ -28,11 +27,19 @@ export function onRequest(context: EntryPoints.Suitelet.onRequestContext) {
         //         "Authorization": `Oauth2 MjVkMTdiZjY1ODA0NDhjZDhmMmMzMzNlY2RmNmEyNzg=`
         //     }
         // });
-        // response.write("working...");
+
+        // const r = record.load({ id: 1428, type: "inventoryitem", isDynamic: true });
+        // const x = r.findSublistLineWithValue({
+        //     sublistId: "locations",
+        //     fieldId: "location",
+        //     value: 1
+        // });
+        // response.write(String(x));
+        // response.write(JSON.stringify(new Date("2019-07-17T06:36:12.651372+00:00")));
         response.write(JSON.stringify({
             search: search.create({
                 type: search.Type.ITEM,
-                filters: ["parent", "noneof", "@NONE@"],
+                // filters: ["parent", "noneof", "@NONE@"],
                 columns: ["itemid", "parent", "subsidiary", search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })]
             }).run().getRange(0, 1000),
             // record: record.load({ type: record.Type.INVENTORY_ITEM, id: 1428 })

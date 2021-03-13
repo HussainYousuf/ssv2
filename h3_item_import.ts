@@ -61,7 +61,7 @@ function process(wrapper: any, esItem: any) {
     }).run().getRange(0, 1)[0];
 
     const rsEsModDate = rsSearch?.getValue(EXTERNAL_MODIFICATION_DATE) as string;
-    if (rsEsModDate && (format.parse({ type: format.Type.DATETIMETZ, value: rsEsModDate }) as Date).getTime() == esModDate.getTime()) return;
+    if (rsEsModDate && (format.parse({ type: format.Type.DATETIMETZ, value: rsEsModDate }) as Date).getTime() == (esModDate as Date).setMilliseconds(0)) return;
 
     const rsId = rsSearch?.id;
     let nsId = rsSearch?.getValue(NETSUITE_ID) as string;

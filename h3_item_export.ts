@@ -77,6 +77,7 @@ function process(wrapper: any, nsItem: any) {
 
     try {
         const esItem = {};
+        const nsRecord = record.load({ type: recType, id: nsId, isDynamic: true });
 
         for (const value of esConfig[EXTERNAL_STORES_CONFIG.KEYS.ITEM_EXPORT_FUNCTION] as [string]) {
             const values = value.trim().split(/\s+/);
@@ -84,16 +85,31 @@ function process(wrapper: any, nsItem: any) {
             const args = values.slice(1);
             const _function = wrapper[functionName] || functions[functionName];
             _function && _function.apply({
-                nsRecord: { record: record.load({ type: recType, id: nsId, isDynamic: true }), search: nsItem },
+                nsRecord: { record: nsRecord, search: nsItem },
                 esRecord: esItem,
                 esConfig
             }, args);
         }
 
-        nsItem.esItem = esItem;
-        esId = esId ? wrapper.putItem?.(esItem, esId) : wrapper.postItem?.(esItem);
+        esId = esId ?
+            wrapper.putItem?.call({
+                nsRecord: { record: nsRecord, search: nsItem },
+                esRecord: esItem,
+                esConfig
+            }, esId) :
+            wrapper.postItem?.call({
+                nsRecord: { record: nsRecord, search: nsItem },
+                esRecord: esItem,
+                esConfig
+            });
 
-        if (!esId) return;
+        if (!esId) {
+            nsItem.isParent = nsRecord.getValue("matrixtype") == "PARENT";
+            nsItem.isMatrix = nsItem.isParent || nsRecord.getValue("matrixtype") == "CHILD";
+            nsItem.parent = nsItem.isParent ? nsItem.id : nsRecord.getValue("parent");
+            nsItem.esItem = esItem;
+            return;
+        }
 
         rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, esId)
             .setText(RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.EXPORTED)
@@ -121,8 +137,7 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
     const wrapper = getWrapper();
-    context.values.map(value => {
-        const nsItem = wrapper.parseItem(value);
+    context.values.map(nsItem => {
         process(wrapper, nsItem);
     });
 }

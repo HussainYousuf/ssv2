@@ -3,9 +3,10 @@ import search from 'N/search';
 import log from 'N/log';
 import https from 'N/https';
 import record from "N/record";
+import runtime from "N/runtime";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, functions } from './h3_common';
+import { getFormattedDateTime, getProperty, functions, searchRecords } from './h3_common';
 
 export const ITEM_EXPORT = {
 
@@ -25,8 +26,8 @@ export const ITEM_EXPORT = {
         if (maxNsModDate) {
             maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
             filters.length && filters.push("AND");
-            filters.push(["parent", search.Operator.NONEOF, "@NONE@"]);
-            filters.push("AND");
+            // filters.push(["parent", search.Operator.NONEOF, "@NONE@"]);
+            // filters.push("AND");
             filters.push([
                 [`formulatext: CASE WHEN to_char({modified},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
                 "OR",
@@ -55,8 +56,8 @@ export const ITEM_EXPORT = {
         };
     },
 
-    setProductValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
-        if (this.nsRecord.getValue("matrixtype") == "PARENT") {
+    setProductValue(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+        if (this.nsRecord.record.getValue("matrixtype") == "PARENT") {
             if (this.esRecord.product) {
                 this.esRecord = this.esRecord.product;
                 functions.setRecordValue.call(this, esField, nsFields);
@@ -67,8 +68,8 @@ export const ITEM_EXPORT = {
         }
     },
 
-    setVariantValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
-        if (this.nsRecord.getValue("matrixtype") == "CHILD") {
+    setVariantValue(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+        if (this.nsRecord.record.getValue("matrixtype") == "CHILD") {
             if (this.esRecord.variant) {
                 this.esRecord = this.esRecord.variant;
                 functions.setRecordValue.call(this, esField, nsFields);
@@ -79,11 +80,11 @@ export const ITEM_EXPORT = {
         }
     },
 
-    putItem(esItem: any, esId: string) {
-        const { ITEM_EXPORT_PUT_QUERY } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+    putItem(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esId: string) {
+        const { ITEM_EXPORT_PUTURL, ITEM_EXPORT_PUTURL1 } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
         const response = JSON.parse(https.put({
-            url: ITEM_EXPORT_PUT_QUERY + esId + ".json",
-            body: JSON.stringify(esItem),
+            url: (this.nsRecord.search.isParent ? this.esConfig[ITEM_EXPORT_PUTURL] : this.esConfig[ITEM_EXPORT_PUTURL1]) + esId + ".json",
+            body: JSON.stringify(this.esRecord),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -105,20 +106,73 @@ export const ITEM_EXPORT = {
     // },
 
     shouldReduce(context: EntryPoints.MapReduce.mapContext, nsItem: any) {
-        nsItem.parent[0] && context.write(nsItem.parent[0].value, nsItem);
+        nsItem.isMatrix && context.write(String(nsItem.parent), nsItem);
     },
 
+    reduce(context: EntryPoints.MapReduce.reduceContext) {
+        const values = context.values.map(value => JSON.parse(value));
+        const key = context.key;
+        const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+        const store = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE);
+        const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
+        const sortedOptions: any[] = esConfig[""]?.reverse() || [];
+
+        const nsEsIdMap: { [key: string]: string; } = {};
+        function callback(this: any, result: search.Result) {
+            const key = result.getValue(result.columns[0].name) as string;
+            const value = result.getValue(result.columns[1].name) as string;
+            this[key] = value;
+        }
+
+        const sortFunction = (sortedOptions: any[]) => (
+            (
+                { option1: a1 = null, option2: b1 = null, option3: c1 = null },
+                { option1: a2 = null, option2: b2 = null, option3: c2 = null }
+            ) =>
+                sortedOptions.indexOf(a2) + sortedOptions.indexOf(b2) + sortedOptions.indexOf(c2) -
+                (sortedOptions.indexOf(a1) + sortedOptions.indexOf(b1) + sortedOptions.indexOf(c1))
+        );
+
+        searchRecords(
+            callback.bind(nsEsIdMap),
+            RECORDS_SYNC.ID,
+            [
+                [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
+                "AND",
+                [RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM]
+            ],
+            [RECORDS_SYNC.FIELDS.NETSUITE_ID, RECORDS_SYNC.FIELDS.EXTERNAL_ID]
+        );
+
+        const parentIndex = values.findIndex(value => value.isParent);
+        let parent = parentIndex > -1 ? values.splice(parentIndex, 1)[0].esItem : null;
+
+        if (parent) {
+            // post
+            parent.product.variants = values.map(value => value.esItem).sort(sortFunction(sortedOptions));
+
+        } else {
+            // put
+            const productEsId = nsEsIdMap[key];
+            const { ITEM_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
+            const response = https.get({
+                url: esConfig[ITEM_IMPORT_GETURL] + `&ids=${productEsId}`,
+            }).body;
+            parent = JSON.parse(response);
+            parent.product.variants.push(...values.map(value => value.esItem));
+            parent.product.variants.sort(sortFunction(sortedOptions));
+
+        }
+
+    }
 };
 
 export const ITEM_IMPORT = {
 
     getItems(maxEsModDate: string | undefined, esConfig: any) {
-        const { ITEM_IMPORT_URL } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+        const { ITEM_IMPORT_GETURL } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
         const response = https.get({
-            url: maxEsModDate ? esConfig[ITEM_IMPORT_URL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_URL],
-            headers: {
-                "Content-Type": "application/json"
-            }
+            url: maxEsModDate ? esConfig[ITEM_IMPORT_GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_GETURL],
         }).body;
 
         log.debug("shopify_wrapper.getItems => response", response);

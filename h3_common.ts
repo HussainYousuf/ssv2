@@ -10,7 +10,8 @@ import * as itemImport from "./h3_item_import";
 import * as itemExport from "./h3_item_export";
 
 export function getFormattedDateTime(dateObj: Date) {
-    return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60 * 1000).toISOString().replace("T", " ").slice(0, -5);
+    return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60 * 1000).toISOString().split(".")[0].replace("T", " ")
+    // new Date(dateObj.toString().split('GMT')[0]+'UTC').toISOString().split(".")[0].replace("T", " ") alternate logic
 }
 
 export function isScriptRunning(scriptIds: string[]) {
@@ -74,11 +75,7 @@ function getEsConfig(store: string, permission: string) {
             [
                 [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.STARTSWITH, permission.toLowerCase()],
                 "OR",
-                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, TYPE],
-                "OR",
-                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, URL],
-                "OR",
-                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, ACCESSTOKEN]
+                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, TYPE]
             ]
         ],
         [
@@ -145,9 +142,9 @@ export const functions: any = {
         }
     },
 
-    setRecordText(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+    setRecordText(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
         for (const nsField of nsFields.split("|")) {
-            const value = this.nsRecord.getText(nsField);
+            const value = this.nsRecord.record.getText(nsField);
             if (value) {
                 this.esRecord[esField] = value;
                 break;
