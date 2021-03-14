@@ -79,6 +79,12 @@ function process(wrapper: any, nsItem: any) {
         const esItem = {};
         const nsRecord = record.load({ type: recType, id: nsId, isDynamic: true });
 
+        wrapper.init?.call({
+            nsRecord: { record: nsRecord, search: nsItem },
+            esRecord: esItem,
+            esConfig
+        });
+
         for (const value of esConfig[EXTERNAL_STORES_CONFIG.KEYS.ITEM_EXPORT_FUNCTION] as [string]) {
             const values = value.trim().split(/\s+/);
             const functionName = values[0];
@@ -91,7 +97,7 @@ function process(wrapper: any, nsItem: any) {
             }, args);
         }
 
-        esId = esId ?
+        const result = esId ?
             wrapper.putItem?.call({
                 nsRecord: { record: nsRecord, search: nsItem },
                 esRecord: esItem,
@@ -103,15 +109,13 @@ function process(wrapper: any, nsItem: any) {
                 esConfig
             });
 
-        if (!esId) {
-            nsItem.isParent = nsRecord.getValue("matrixtype") == "PARENT";
-            nsItem.isMatrix = nsItem.isParent || nsRecord.getValue("matrixtype") == "CHILD";
-            nsItem.parent = nsItem.isParent ? nsItem.nsId : nsRecord.getValue("parent");
+        if (!result) {
             nsItem.esItem = esItem;
-            return;
+            throw Error("");
         }
 
-        rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, esId)
+        rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, result.esId)
+            .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, result.esModDate)
             .setText(RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.EXPORTED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, "");
 
@@ -122,7 +126,7 @@ function process(wrapper: any, nsItem: any) {
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, error.message);
     }
 
-    rsRecord.save({
+    nsItem.rsId = rsRecord.save({
         ignoreMandatoryFields: true
     });
 
