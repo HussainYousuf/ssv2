@@ -56,11 +56,13 @@ export default {
                 ITEM_IMPORT_FIELDMAP: "item_import_fieldmap",
                 ITEM_IMPORT_FUNCTION: "item_import_function",
                 ITEM_IMPORT_GETURL: "item_import_geturl",
+                ITEM_IMPORT_GETURL1: "item_import_geturl1",
                 ITEM_EXPORT_FILTERS: "item_export_filters",
                 ITEM_EXPORT_LIMIT: "item_export_limit",
                 ITEM_EXPORT_COLUMNS: "item_export_columns",
                 ITEM_EXPORT_FUNCTION: "item_export_function",
                 ITEM_EXPORT_PUTURL: "item_export_puturl",
+                ITEM_EXPORT_PUTURL1: "item_export_puturl1",
                 ITEM_EXPORT_POSTURL: "item_export_posturl"
 
             },

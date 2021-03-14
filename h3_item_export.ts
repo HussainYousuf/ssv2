@@ -106,7 +106,7 @@ function process(wrapper: any, nsItem: any) {
         if (!esId) {
             nsItem.isParent = nsRecord.getValue("matrixtype") == "PARENT";
             nsItem.isMatrix = nsItem.isParent || nsRecord.getValue("matrixtype") == "CHILD";
-            nsItem.parent = nsItem.isParent ? nsItem.id : nsRecord.getValue("parent");
+            nsItem.parent = nsItem.isParent ? nsItem.nsId : nsRecord.getValue("parent");
             nsItem.esItem = esItem;
             return;
         }

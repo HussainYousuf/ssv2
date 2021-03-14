@@ -95,16 +95,6 @@ export const ITEM_EXPORT = {
         return String(id);
     },
 
-    // postItem(esItem: any) {
-    //     if (esItem.nsId && esItem.productNsId) {
-    //         const { nsId, productNsId } = esItem;
-    //         context;
-    //     } else {
-    //         const { ITEM_EXPORT_POST_QUERY } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
-    //     }
-
-    // },
-
     shouldReduce(context: EntryPoints.MapReduce.mapContext, nsItem: any) {
         nsItem.isMatrix && context.write(String(nsItem.parent), nsItem);
     },
@@ -117,13 +107,6 @@ export const ITEM_EXPORT = {
         const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
         const sortedOptions: any[] = esConfig[""]?.reverse() || [];
 
-        const nsEsIdMap: { [key: string]: string; } = {};
-        function callback(this: any, result: search.Result) {
-            const key = result.getValue(result.columns[0].name) as string;
-            const value = result.getValue(result.columns[1].name) as string;
-            this[key] = value;
-        }
-
         const sortFunction = (sortedOptions: any[]) => (
             (
                 { option1: a1 = null, option2: b1 = null, option3: c1 = null },
@@ -133,36 +116,73 @@ export const ITEM_EXPORT = {
                 (sortedOptions.indexOf(a1) + sortedOptions.indexOf(b1) + sortedOptions.indexOf(c1))
         );
 
-        searchRecords(
-            callback.bind(nsEsIdMap),
-            RECORDS_SYNC.ID,
-            [
-                [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
-                "AND",
-                [RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM]
-            ],
-            [RECORDS_SYNC.FIELDS.NETSUITE_ID, RECORDS_SYNC.FIELDS.EXTERNAL_ID]
-        );
+        const parentIndex = values.findIndex(value => value.nsId == key);
+        const parent = parentIndex > -1 ? values.splice(parentIndex, 1)[0] : null;
+        let response;
 
-        const parentIndex = values.findIndex(value => value.isParent);
-        let parent = parentIndex > -1 ? values.splice(parentIndex, 1)[0].esItem : null;
+        const { ITEM_IMPORT_GETURL1, ITEM_EXPORT_POSTURL, ITEM_EXPORT_PUTURL } = EXTERNAL_STORES_CONFIG.KEYS;
+        const existingVariantIds: any = [];
 
         if (parent) {
             // post
-            parent.product.variants = values.map(value => value.esItem).sort(sortFunction(sortedOptions));
-
+            const query = parent.esItem;
+            query.product.variants = values.map(value => value.esItem.variant).sort(sortFunction(sortedOptions));
+            if (!query.product.variants.length) throw Error(`Can't create product {nsId: ${key}} without atleast one variant`);
+            response = JSON.parse(https.post({
+                url: esConfig[ITEM_EXPORT_POSTURL],
+                body: JSON.stringify(query),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).body);
         } else {
             // put
-            const productEsId = nsEsIdMap[key];
-            const { ITEM_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
-            const response = https.get({
-                url: esConfig[ITEM_IMPORT_GETURL] + `&ids=${productEsId}`,
-            }).body;
-            parent = JSON.parse(response);
-            parent.product.variants.push(...values.map(value => value.esItem));
-            parent.product.variants.sort(sortFunction(sortedOptions));
+            const productEsId = search.create({
+                type: RECORDS_SYNC.ID,
+                filters: [
+                    [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
+                    "AND",
+                    [RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM],
+                    "AND",
+                    [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, key]
+                ],
+                columns: [RECORDS_SYNC.FIELDS.EXTERNAL_ID]
+            }).run().getRange(0, 1)[0]?.getValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID);
 
+            if (!productEsId) throw Error(`make sure product {nsId: ${key}} is exported`);
+
+            response = https.get({
+                url: esConfig[ITEM_IMPORT_GETURL1] + productEsId + ".json",
+            }).body;
+            const query = JSON.parse(response);
+            query.product.variants.map((variant: any) => existingVariantIds.push(variant.id));
+            query.product.variants.push(...values.map(value => value.esItem.variant));
+            query.product.variants.sort(sortFunction(sortedOptions));
+            response = JSON.parse(https.post({
+                url: esConfig[ITEM_EXPORT_PUTURL] + productEsId + ".json",
+                body: JSON.stringify(query),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).body);
         }
+        if (response.errors) throw Error(response.errors);
+        values.forEach((value, index, array) => {
+            const { nsId, nsModDate, esItem: { option1 = null, option2 = null, option3 = null } } = value;
+            array[index] = { nsId, nsModDate, option1, option2, option3 };
+        });
+        values.sort(sortFunction(sortedOptions));
+        const rsData = [];
+        if (parent) {
+            const { id: esId, updated_at: esModDate } = response.product;
+            const { nsId, nsModDate } = parent;
+            rsData.push({ nsId, esId, esModDate, nsModDate });
+        }
+        (response.product.variants as any[]).filter((variant) => !existingVariantIds.includes(variant.id)).map((variant, index) => {
+            const { id: esId, updated_at: esModDate } = variant;
+            const { nsId, nsModDate } = values[index];
+            rsData.push({ nsId, esId, esModDate, nsModDate });
+        });
 
     }
 };
