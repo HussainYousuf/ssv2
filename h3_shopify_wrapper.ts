@@ -98,8 +98,10 @@ export const ITEM_EXPORT = {
         }).body);
 
         if (response.errors) throw Error(response.errors);
-        const id = response.product?.id || response.variant?.id;
-        return String(id);
+        return {
+            esId: String(response.product?.id || response.variant?.id),
+            esModDate: new Date(response.product?.updated_at || response.variant?.updated_at)
+        };
     },
 
     shouldReduce(context: EntryPoints.MapReduce.mapContext, nsItem: any) {
@@ -196,7 +198,7 @@ export const ITEM_EXPORT = {
                     id: rec.rsId,
                     type: RECORDS_SYNC.ID,
                     values: {
-                        [RECORDS_SYNC.FIELDS.EXTERNAL_ID]: rec.esId,
+                        [RECORDS_SYNC.FIELDS.EXTERNAL_ID]: String(rec.esId),
                         [RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE]: rec.esModDate,
                         [RECORDS_SYNC.FIELDS.STATUS]: constants.LIST_RECORDS.STATUSES.EXPORTED
                     }
