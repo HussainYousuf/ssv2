@@ -8,16 +8,18 @@ import { getWrapper, functions } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
+
 
 function init() {
-    const store = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE);
-    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
+    const { store } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
     const filters = [
         [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
         "AND",
-        [RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM],
+        [RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM],
         "AND",
-        [RECORDS_SYNC.FIELDS.STATUS_NAME, search.Operator.IS, constants.LIST_RECORDS.STATUSES.EXPORTED],
+        [RECORDS_SYNC.FIELDS.STATUS_NAME, search.Operator.IS, RECORDS_SYNC.VALUES.STATUSES.EXPORTED],
     ];
     return { store, filters, esConfig };
 }
@@ -72,7 +74,7 @@ function process(wrapper: any, nsItem: any) {
 
     rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_STORE, store)
         .setValue(RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
-        .setText(RECORDS_SYNC.FIELDS.RECORD_TYPE, constants.LIST_RECORDS.RECORD_TYPES.ITEM)
+        .setText(RECORDS_SYNC.FIELDS.RECORD_TYPE, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM)
         .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, nsModDate);
 
     try {
@@ -116,13 +118,13 @@ function process(wrapper: any, nsItem: any) {
 
         rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, result.esId)
             .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, result.esModDate)
-            .setText(RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.EXPORTED)
+            .setText(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.EXPORTED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, "");
 
-        log.debug("Success", `${constants.LIST_RECORDS.RECORD_TYPES.ITEM} with id ${nsId}, ${constants.LIST_RECORDS.STATUSES.EXPORTED}`);
+        log.debug("Success", `${RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM} with id ${nsId}, ${RECORDS_SYNC.VALUES.STATUSES.EXPORTED}`);
 
     } catch (error) {
-        rsRecord.setText(RECORDS_SYNC.FIELDS.STATUS, constants.LIST_RECORDS.STATUSES.FAILED)
+        rsRecord.setText(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.FAILED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, error.message);
     }
 

@@ -7,6 +7,19 @@ import runtime from "N/runtime";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
 import { getFormattedDateTime, getProperty, functions, searchRecords } from './h3_common';
+import { Shopify } from "./h3_types";
+
+function parseResponse(response: https.ClientResponse) {
+    try {
+        const result = JSON.parse(response.body);
+        if (result.errors) throw Error();
+        else return result;
+    } catch (error) {
+        error = Error(response.code + " " + response.body);
+        log.error(error);
+        throw Error(error);
+    }
+}
 
 export const ITEM_EXPORT = {
 
@@ -89,15 +102,14 @@ export const ITEM_EXPORT = {
 
     putItem(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esId: string) {
         const { ITEM_EXPORT_PUTURL, ITEM_EXPORT_PUTURL1 } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
-        const response = JSON.parse(https.put({
+        const response: Shopify.SingleProduct & Shopify.SingleVariant = parseResponse(https.put({
             url: (this.nsRecord.search.isParent ? this.esConfig[ITEM_EXPORT_PUTURL] : this.esConfig[ITEM_EXPORT_PUTURL1]) + esId + ".json",
             body: JSON.stringify(this.esRecord),
             headers: {
                 "Content-Type": "application/json"
             }
-        }).body);
+        }));
 
-        if (response.errors) throw Error(response.errors);
         return {
             esId: String(response.product?.id || response.variant?.id),
             esModDate: new Date(response.product?.updated_at || response.variant?.updated_at)
@@ -111,10 +123,12 @@ export const ITEM_EXPORT = {
     reduce(context: EntryPoints.MapReduce.reduceContext) {
         const values = context.values.map(value => JSON.parse(value));
         const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+        const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
+
         try {
             const key = context.key;
-            const store = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_STORE);
-            const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_CONFIG) as string);
+            const { store } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+            const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
             const sortedOptions: any[] = esConfig[""]?.reverse() || [];
 
             const sortFunction = (sortedOptions: any[]) => (
@@ -152,7 +166,7 @@ export const ITEM_EXPORT = {
                     filters: [
                         [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
                         "AND",
-                        [RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, constants.LIST_RECORDS.RECORD_TYPES.ITEM],
+                        [RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM],
                         "AND",
                         [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, key]
                     ],
@@ -200,7 +214,7 @@ export const ITEM_EXPORT = {
                     values: {
                         [RECORDS_SYNC.FIELDS.EXTERNAL_ID]: String(rec.esId),
                         [RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE]: rec.esModDate,
-                        [RECORDS_SYNC.FIELDS.STATUS]: constants.LIST_RECORDS.STATUSES.EXPORTED
+                        [RECORDS_SYNC.FIELDS.STATUS]: RECORDS_SYNC.VALUES.STATUSES.EXPORTED
                     }
                 });
             });
@@ -232,7 +246,7 @@ export const ITEM_IMPORT = {
     },
 
     parseItem(item: string) {
-        const esItem = JSON.parse(item);
+        const esItem: Shopify.Product | Shopify.Variant = JSON.parse(item);
         return {
             ...esItem,
             esId: String(esItem.id),

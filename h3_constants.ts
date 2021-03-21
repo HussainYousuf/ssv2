@@ -7,23 +7,19 @@ export default {
         DASHBOARD_SL_FOLDER: "custscript_h3_dashboard_sl_folder",
         DASHBOARD_SL_PARENT: "custscript_h3_dashboard_sl_parent",
         SYNC_SL_KEY: "custscript_h3_sync_sl_key",
-        BASE_STORE_PERMISSIONS: "custscript_h3_base_mr_sps",
-        BASE_CONFIG: "custscript_h3_base_mr_config",
-        BASE_TYPE: "custscript_h3_base_mr_type",
-        BASE_STORE: "custscript_h3_base_mr_store",
-        BASE_PERMISSION: "custscript_h3_base_mr_permission",
+        BASE_MR_STORE_PERMISSIONS: "custscript_h3_base_mr_sps",
+        BASE_MR_ESCONFIG: "custscript_h3_base_mr_esconfig",
     },
     SCRIPTS: {
         DASHBOARD_SL: "customscript_h3_dashboard_sl",
         SYNC_SL: "customscript_h3_sync_sl",
-        STARTUP: "customscript_h3_startup_sch",
-        BASE: "customscript_h3_base_mr"
+        BASE_MR: "customscript_h3_base_mr",
     },
     SCRIPTS_DEPLOYMENTS: {
         DASHBOARD_SL: "customdeploy_h3_dashboard_sl",
         SYNC_SL: "customdeploy_h3_sync_sl",
-        STARTUP: "customdeploy_h3_startup_sch",
-        BASE: "customdeploy_h3_base_mr"
+        BASE_MR: "customdeploy_h3_base_mr",
+        BASE_MR_SCH: "customdeploy_h3_base_mr_sch"
     },
     RECORDS: {
         RECORDS_SYNC: {
@@ -39,6 +35,17 @@ export default {
                 STATUS_NAME: "custrecord_h3_rs_status.name",
                 STATUS: "custrecord_h3_rs_status",
                 ERROR_LOG: "custrecord_h3_rs_error_log"
+            },
+            VALUES: {
+                RECORD_TYPES: {
+                    ITEM: "Item",
+                    SALESORDER: "Salesorder",
+                },
+                STATUSES: {
+                    IMPORTED: "Imported",
+                    EXPORTED: "Exported",
+                    FAILED: "Failed",
+                }
             }
         },
         EXTERNAL_STORES_CONFIG: {
@@ -77,17 +84,6 @@ export default {
                 SALESFORCE: "SALESFORCE"
             }
         }
-    },
-    LIST_RECORDS: {
-        RECORD_TYPES: {
-            ITEM: "Item",
-            SALESORDER: "Salesorder",
-        },
-        STATUSES: {
-            IMPORTED: "Imported",
-            EXPORTED: "Exported",
-            FAILED: "Failed",
-        }
-    },
+    }
 };
 

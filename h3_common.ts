@@ -9,18 +9,23 @@ import * as salesforceWrapper from "./h3_salesforce_wrapper";
 import * as itemImport from "./h3_item_import";
 import * as itemExport from "./h3_item_export";
 
+const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
+
+
 export function getFormattedDateTime(dateObj: Date) {
-    return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60 * 1000).toISOString().split(".")[0].replace("T", " ")
+    return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60 * 1000).toISOString().split(".")[0].replace("T", " ");
     // new Date(dateObj.toString().split('GMT')[0]+'UTC').toISOString().split(".")[0].replace("T", " ") alternate logic
 }
 
-export function isScriptRunning(scriptIds: string[]) {
+export function otherDeploymentsAreRunning(scriptIds: string[], deploymentIds: string[]) {
     const executingStatuses = ["PENDING", "PROCESSING", "RESTART", "RETRY"];
     return Boolean(search.create({
         type: search.Type.SCHEDULED_SCRIPT_INSTANCE,
         filters: [
             ["status", search.Operator.ANYOF, executingStatuses], "AND",
-            ["script.scriptid", search.Operator.ANYOF, scriptIds]
+            ["script.scriptid", search.Operator.ANYOF, scriptIds], "AND",
+            ["scriptDeployment.scriptid", search.Operator.NONEOF, deploymentIds]
         ],
     }).runPaged().count);
 }
@@ -39,27 +44,18 @@ export function scheduleScript(storePermissions: { store: string, permission: st
     const esConfig = getEsConfig(store, permission);
     task.create({
         taskType: task.TaskType.MAP_REDUCE,
-        scriptId: constants.SCRIPTS.BASE,
-        deploymentId: constants.SCRIPTS_DEPLOYMENTS.BASE,
+        scriptId: constants.SCRIPTS.BASE_MR,
+        deploymentId: constants.SCRIPTS_DEPLOYMENTS.BASE_MR,
         params: {
-            [constants.SCRIPT_PARAMS.BASE_STORE_PERMISSIONS]: JSON.stringify(storePermissions),
-            [constants.SCRIPT_PARAMS.BASE_CONFIG]: JSON.stringify(esConfig),
-            [constants.SCRIPT_PARAMS.BASE_TYPE]: esConfig[constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS.TYPE],
-            [constants.SCRIPT_PARAMS.BASE_STORE]: store,
-            [constants.SCRIPT_PARAMS.BASE_PERMISSION]: permission
-
+            [BASE_MR_STORE_PERMISSIONS]: JSON.stringify(storePermissions),
+            [BASE_MR_ESCONFIG]: JSON.stringify(esConfig),
         }
     }).submit();
 }
 
-export function isCurrentScriptRunning() {
-    const currentScript = runtime.getCurrentScript();
-    return isScriptRunning([currentScript.id]);
-}
-
 function getEsConfig(store: string, permission: string) {
     const esConfig = {};
-    const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION, TYPE, URL, ACCESSTOKEN } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+    const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION, TYPE, } = EXTERNAL_STORES_CONFIG.KEYS;
     function callback(this: any, result: search.Result) {
         const key = result.getValue(result.columns[0].name) as string;
         const value = result.getValue(result.columns[1].name) as string;
@@ -68,19 +64,19 @@ function getEsConfig(store: string, permission: string) {
     }
     searchRecords(
         callback.bind(esConfig),
-        constants.RECORDS.EXTERNAL_STORES_CONFIG.ID,
+        EXTERNAL_STORES_CONFIG.ID,
         [
-            [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.STORE, search.Operator.IS, store],
+            [EXTERNAL_STORES_CONFIG.FIELDS.STORE, search.Operator.IS, store],
             "AND",
             [
-                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.STARTSWITH, permission.toLowerCase()],
+                [EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.STARTSWITH, permission.toLowerCase()],
                 "OR",
-                [constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, TYPE]
+                [EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, TYPE]
             ]
         ],
         [
-            constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.KEY,
-            constants.RECORDS.EXTERNAL_STORES_CONFIG.FIELDS.VALUE
+            EXTERNAL_STORES_CONFIG.FIELDS.KEY,
+            EXTERNAL_STORES_CONFIG.FIELDS.VALUE
         ]
     );
     log.debug("common.getEsConfig => esConfig", esConfig);
@@ -89,25 +85,26 @@ function getEsConfig(store: string, permission: string) {
 
 export function getWrapper(): any {
     function getWrapper(): any {
-        const type = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_TYPE);
+        const type = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string)[EXTERNAL_STORES_CONFIG.KEYS.TYPE];
         switch (type) {
-            case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
+            case EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
                 return shopifyWrapper;
-            case constants.RECORDS.EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
+            case EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
                 return salesforceWrapper;
             default:
                 throw Error(`common.getWrapper => unknown type ${type}`);
         }
     }
-    return getWrapper()[runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION) as string];
+    const { permission } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+    return getWrapper()[permission];
 }
 
 export function getPermission() {
-    const permission = runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_PERMISSION);
+    const { permission } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
     switch (permission) {
-        case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
+        case EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
             return itemImport;
-        case constants.RECORDS.EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_EXPORT:
+        case EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_EXPORT:
             return itemExport;
         default:
             throw Error(`common.getPermission => unknown permission ${permission}`);
