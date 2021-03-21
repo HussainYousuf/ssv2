@@ -6,8 +6,11 @@ import record from "N/record";
 import runtime from "N/runtime";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, functions, searchRecords } from './h3_common';
+import { getFormattedDateTime, getProperty, functions } from './h3_common';
 import { Shopify } from "./h3_types";
+
+const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
 
 function parseResponse(response: https.ClientResponse) {
     try {
@@ -24,9 +27,9 @@ function parseResponse(response: https.ClientResponse) {
 export const ITEM_EXPORT = {
 
     getItems(maxNsModDate: string | Date | undefined, esConfig: any) {
-        const { ITEM_EXPORT_FILTERS, ITEM_EXPORT_LIMIT, ITEM_EXPORT_COLUMNS } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+        const { ITEM_EXPORT_FILTERS, ITEM_EXPORT_LIMIT, ITEM_EXPORT_COLUMNS } = EXTERNAL_STORES_CONFIG.KEYS;
 
-        const columns = JSON.parse(esConfig[ITEM_EXPORT_COLUMNS]);
+        const columns = esConfig[ITEM_EXPORT_COLUMNS];
         columns.push(
             search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" }),
             search.createColumn({ name: "formulatext_lastquantityavailablechange", formula: "to_char({lastquantityavailablechange},'yyyy-mm-dd hh24:mi:ss')" })
@@ -39,8 +42,6 @@ export const ITEM_EXPORT = {
         if (maxNsModDate) {
             maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
             filters.length && filters.push("AND");
-            // filters.push(["parent", search.Operator.NONEOF, "@NONE@"]);
-            // filters.push("AND");
             filters.push([
                 [`formulatext: CASE WHEN to_char({modified},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
                 "OR",
@@ -101,7 +102,7 @@ export const ITEM_EXPORT = {
     },
 
     putItem(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esId: string) {
-        const { ITEM_EXPORT_PUTURL, ITEM_EXPORT_PUTURL1 } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+        const { ITEM_EXPORT_PUTURL, ITEM_EXPORT_PUTURL1 } = EXTERNAL_STORES_CONFIG.KEYS;
         const response: Shopify.SingleProduct & Shopify.SingleVariant = parseResponse(https.put({
             url: (this.nsRecord.search.isParent ? this.esConfig[ITEM_EXPORT_PUTURL] : this.esConfig[ITEM_EXPORT_PUTURL1]) + esId + ".json",
             body: JSON.stringify(this.esRecord),
@@ -122,8 +123,6 @@ export const ITEM_EXPORT = {
 
     reduce(context: EntryPoints.MapReduce.reduceContext) {
         const values = context.values.map(value => JSON.parse(value));
-        const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
-        const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
 
         try {
             const key = context.key;
@@ -236,7 +235,7 @@ export const ITEM_EXPORT = {
 export const ITEM_IMPORT = {
 
     getItems(maxEsModDate: string | undefined, esConfig: any) {
-        const { ITEM_IMPORT_GETURL } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+        const { ITEM_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
         const response = https.get({
             url: maxEsModDate ? esConfig[ITEM_IMPORT_GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_GETURL],
         }).body;
@@ -282,7 +281,7 @@ export const ITEM_IMPORT = {
     setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, arrField: string, esField: string, esValueField: string) {
         if (this.esRecord.productNsId) return;
         // when you don't know ns field
-        const { ITEM_IMPORT_FIELDMAP } = constants.RECORDS.EXTERNAL_STORES_CONFIG.KEYS;
+        const { ITEM_IMPORT_FIELDMAP } = EXTERNAL_STORES_CONFIG.KEYS;
         const fieldMap: { [key: string]: string; } = {};
         this.esConfig[ITEM_IMPORT_FIELDMAP].map((value: string) => {
             const values = value.trim().split(/\s+/);
