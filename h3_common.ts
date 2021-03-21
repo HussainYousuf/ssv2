@@ -18,15 +18,15 @@ export function getFormattedDateTime(dateObj: Date) {
     // new Date(dateObj.toString().split('GMT')[0]+'UTC').toISOString().split(".")[0].replace("T", " ") alternate logic
 }
 
-export function otherDeploymentsAreRunning(scriptIds: string[], deploymentIds: string[]) {
+export function areOtherDeploymentsRunning(scriptId: string, deploymentId: string) {
     const executingStatuses = ["PENDING", "PROCESSING", "RESTART", "RETRY"];
     return Boolean(search.create({
         type: search.Type.SCHEDULED_SCRIPT_INSTANCE,
         filters: [
             ["status", search.Operator.ANYOF, executingStatuses], "AND",
-            ["script.scriptid", search.Operator.ANYOF, scriptIds], "AND",
-            ["scriptDeployment.scriptid", search.Operator.NONEOF, deploymentIds]
-        ],
+            ["script.scriptid", search.Operator.IS, scriptId], "AND",
+            ["scriptdeployment.scriptid", search.Operator.ISNOT, deploymentId]
+        ]
     }).runPaged().count);
 }
 
