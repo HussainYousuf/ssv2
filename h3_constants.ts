@@ -70,7 +70,8 @@ export default {
                 ITEM_EXPORT_FUNCTION: "item_export_function",
                 ITEM_EXPORT_PUTURL: "item_export_puturl",
                 ITEM_EXPORT_PUTURL1: "item_export_puturl1",
-                ITEM_EXPORT_POSTURL: "item_export_posturl"
+                ITEM_EXPORT_POSTURL: "item_export_posturl",
+                ITEM_EXPORT_SORTEDOPTIONS: "item_export_sortedoptions"
 
             },
             PERMISSIONS: {

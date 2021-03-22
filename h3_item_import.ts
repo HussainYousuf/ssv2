@@ -7,7 +7,7 @@ import constants from './h3_constants';
 import { getWrapper, functions } from './h3_common';
 import format from 'N/format';
 
-const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG} = constants.RECORDS;
+const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
 
 function init() {
@@ -93,7 +93,20 @@ function process(wrapper: any, esItem: any) {
             ignoreMandatoryFields: true
         }));
 
+        const formulatext_modified = search.create({
+            type: search.Type.ITEM,
+            id: nsId,
+            columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })],
+        }).run().getRange(0, 1)[0].getValue("formulatext_modified");
+
+        const nsModDate = format.format({
+            value: new Date((formulatext_modified as string).replace(" ", "T") + "Z"),
+            type: format.Type.DATETIMETZ,
+            timezone: format.Timezone.GMT
+        });
+
         rsRecord.setValue(RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
+            .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, nsModDate)
             .setText(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.IMPORTED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, "");
 

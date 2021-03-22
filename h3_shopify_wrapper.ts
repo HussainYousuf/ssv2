@@ -27,17 +27,16 @@ function parseResponse(response: https.ClientResponse) {
 export const ITEM_EXPORT = {
 
     getItems(maxNsModDate: string | Date | undefined, esConfig: any) {
-        const { ITEM_EXPORT_FILTERS, ITEM_EXPORT_LIMIT, ITEM_EXPORT_COLUMNS } = EXTERNAL_STORES_CONFIG.KEYS;
+        const { ITEM_EXPORT_FILTERS, ITEM_EXPORT_LIMIT } = EXTERNAL_STORES_CONFIG.KEYS;
 
-        const columns = esConfig[ITEM_EXPORT_COLUMNS];
+        const { filterExpression: filters, columns } = search.load({
+            id: esConfig[ITEM_EXPORT_FILTERS]
+        });
+
         columns.push(
             search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" }),
             search.createColumn({ name: "formulatext_lastquantityavailablechange", formula: "to_char({lastquantityavailablechange},'yyyy-mm-dd hh24:mi:ss')" })
         );
-
-        const filters = search.load({
-            id: esConfig[ITEM_EXPORT_FILTERS]
-        }).filterExpression;
 
         if (maxNsModDate) {
             maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
@@ -53,7 +52,7 @@ export const ITEM_EXPORT = {
             type: search.Type.ITEM,
             filters,
             columns
-        }).run().getRange(0, Number(esConfig[ITEM_EXPORT_LIMIT]));
+        }).run().getRange(0, Number(esConfig[ITEM_EXPORT_LIMIT]) || 1000);
     },
 
     parseItem(item: string) {
@@ -126,9 +125,10 @@ export const ITEM_EXPORT = {
 
         try {
             const key = context.key;
+            const { ITEM_IMPORT_GETURL1, ITEM_EXPORT_POSTURL, ITEM_EXPORT_PUTURL, ITEM_EXPORT_SORTEDOPTIONS } = EXTERNAL_STORES_CONFIG.KEYS;
             const { store } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
             const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
-            const sortedOptions: any[] = esConfig[""]?.reverse() || [];
+            const sortedOptions: any[] = esConfig[ITEM_EXPORT_SORTEDOPTIONS]?.reverse() || [];
 
             const sortFunction = (sortedOptions: any[]) => (
                 (
@@ -141,23 +141,22 @@ export const ITEM_EXPORT = {
 
             const parentIndex = values.findIndex(value => value.nsId == key);
             const parent = parentIndex > -1 ? values.splice(parentIndex, 1)[0] : null;
-            let response;
+            let response: Shopify.SingleProduct;
 
-            const { ITEM_IMPORT_GETURL1, ITEM_EXPORT_POSTURL, ITEM_EXPORT_PUTURL } = EXTERNAL_STORES_CONFIG.KEYS;
-            const existingVariantIds: any = [];
+            const existingVariantIds: number[] = [];
 
             if (parent) {
                 // post
                 const query = parent.esItem;
                 query.product.variants = values.map(value => value.esItem.variant).sort(sortFunction(sortedOptions));
                 if (!query.product.variants.length) throw Error(`Can't create product {nsId: ${key}} without atleast one variant`);
-                response = JSON.parse(https.post({
+                response = parseResponse(https.post({
                     url: esConfig[ITEM_EXPORT_POSTURL],
                     body: JSON.stringify(query),
                     headers: {
                         "Content-Type": "application/json"
                     }
-                }).body);
+                }));
             } else {
                 // put
                 const productEsId = search.create({
@@ -174,34 +173,35 @@ export const ITEM_EXPORT = {
 
                 if (!productEsId) throw Error(`make sure product {nsId: ${key}} is exported`);
 
-                response = https.get({
+                response = parseResponse(https.get({
                     url: esConfig[ITEM_IMPORT_GETURL1] + productEsId + ".json",
-                }).body;
-                const query = JSON.parse(response);
+                }));
+                const query = response;
                 query.product.variants.map((variant: any) => existingVariantIds.push(variant.id));
                 query.product.variants.push(...values.map(value => value.esItem.variant));
                 query.product.variants.sort(sortFunction(sortedOptions));
-                response = JSON.parse(https.post({
+                response = parseResponse(https.post({
                     url: esConfig[ITEM_EXPORT_PUTURL] + productEsId + ".json",
                     body: JSON.stringify(query),
                     headers: {
                         "Content-Type": "application/json"
                     }
-                }).body);
+                }));
             }
-            if (response.errors) throw Error(response.errors);
+
             values.forEach((value, index, array) => {
                 const { nsId, nsModDate, rsId, esItem: { option1 = null, option2 = null, option3 = null } } = value;
                 array[index] = { nsId, nsModDate, rsId, option1, option2, option3 };
             });
             values.sort(sortFunction(sortedOptions));
+
             const rsData = [];
             if (parent) {
                 const { id: esId, updated_at: esModDate } = response.product;
                 const { nsId, nsModDate, rsId } = parent;
                 rsData.push({ nsId, esId, esModDate, nsModDate, rsId });
             }
-            (response.product.variants as any[]).filter((variant) => !existingVariantIds.includes(variant.id)).map((variant, index) => {
+            response.product.variants.filter((variant) => !existingVariantIds.includes(variant.id)).map((variant, index) => {
                 const { id: esId, updated_at: esModDate } = variant;
                 const { nsId, nsModDate, rsId } = values[index];
                 rsData.push({ nsId, esId, esModDate, nsModDate, rsId });
@@ -236,9 +236,9 @@ export const ITEM_IMPORT = {
 
     getItems(maxEsModDate: string | undefined, esConfig: any) {
         const { ITEM_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
-        const response = https.get({
+        const response = parseResponse(https.get({
             url: maxEsModDate ? esConfig[ITEM_IMPORT_GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_GETURL],
-        }).body;
+        }));
 
         log.debug("shopify_wrapper.getItems => response", response);
         return JSON.parse(response).products;
