@@ -164,7 +164,7 @@ export const ITEM_EXPORT = {
                     filters: [
                         [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
                         "AND",
-                        [RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM],
+                        [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM],
                         "AND",
                         [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, key]
                     ],
@@ -293,6 +293,7 @@ export const ITEM_IMPORT = {
             const nsField = fieldMap[getProperty(obj, esField)];
             this.esRecord.optionFieldMap[`option${index + 1}`] = nsField;
             const value = getProperty(obj, esValueField);
+            const options = this.nsRecord.getField({ fieldId: "" }).getSelectOptions().map(({ text }) => text);
             this.nsRecord.setText(nsField, value);
         });
     },

@@ -16,9 +16,9 @@ function init() {
     const filters = [
         [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
         "AND",
-        [RECORDS_SYNC.FIELDS.RECORD_TYPE_NAME, search.Operator.IS, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM],
+        [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM],
         "AND",
-        [RECORDS_SYNC.FIELDS.STATUS_NAME, search.Operator.IS, RECORDS_SYNC.VALUES.STATUSES.IMPORTED],
+        [RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, RECORDS_SYNC.VALUES.STATUSES.IMPORTED],
     ];
     return { store, filters, esConfig };
 }
@@ -73,7 +73,7 @@ function process(wrapper: any, esItem: any) {
 
     rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_STORE, store)
         .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, esId)
-        .setText(RECORDS_SYNC.FIELDS.RECORD_TYPE, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM)
+        .setValue(RECORDS_SYNC.FIELDS.RECORD_TYPE, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM)
         .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, esModDate);
 
     try {
@@ -107,13 +107,13 @@ function process(wrapper: any, esItem: any) {
 
         rsRecord.setValue(RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
             .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, nsModDate)
-            .setText(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.IMPORTED)
+            .setValue(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.IMPORTED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, "");
 
         log.debug("Success", `${RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM} with id ${nsId}, ${RECORDS_SYNC.VALUES.STATUSES.IMPORTED}`);
 
     } catch (error) {
-        rsRecord.setText(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.FAILED)
+        rsRecord.setValue(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.FAILED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, error.message);
     }
 

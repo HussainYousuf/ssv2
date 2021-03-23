@@ -28,13 +28,12 @@ export default {
                 EXTERNAL_STORE: "custrecord_h3_rs_external_store",
                 NETSUITE_ID: "custrecord_h3_rs_netsuite_id",
                 EXTERNAL_ID: "custrecord_h3_rs_external_id",
-                RECORD_TYPE_NAME: "custrecord_h3_rs_record_type.name",
                 RECORD_TYPE: "custrecord_h3_rs_record_type",
                 NETSUITE_MODIFICATION_DATE: "custrecord_h3_rs_netsuite_mod_date",
                 EXTERNAL_MODIFICATION_DATE: "custrecord_h3_rs_external_mod_date",
-                STATUS_NAME: "custrecord_h3_rs_status.name",
                 STATUS: "custrecord_h3_rs_status",
-                ERROR_LOG: "custrecord_h3_rs_error_log"
+                ERROR_LOG: "custrecord_h3_rs_error_log",
+                EXTRAS: "custrecord_h3_rs_extras"
             },
             VALUES: {
                 RECORD_TYPES: {
