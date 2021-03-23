@@ -6,7 +6,7 @@ import record from "N/record";
 import runtime from "N/runtime";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, functions } from './h3_common';
+import { getFormattedDateTime, getProperty, functions, searchRecords } from './h3_common';
 import { Shopify } from "./h3_types";
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -26,7 +26,7 @@ function parseResponse(response: https.ClientResponse) {
 
 export const ITEM_EXPORT = {
 
-    getItems(maxNsModDate: string | Date | undefined, esConfig: any) {
+    getItems(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>) {
         const { ITEM_EXPORT_FILTERS, ITEM_EXPORT_LIMIT } = EXTERNAL_STORES_CONFIG.KEYS;
 
         const { filterExpression: filters, columns } = search.load({
@@ -69,14 +69,14 @@ export const ITEM_EXPORT = {
         };
     },
 
-    init(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }) {
+    init(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }) {
         this.nsRecord.search.isParent = this.nsRecord.record.getValue("matrixtype") == "PARENT";
         this.nsRecord.search.isChild = this.nsRecord.record.getValue("matrixtype") == "CHILD";
         this.nsRecord.search.isMatrix = this.nsRecord.search.isParent || this.nsRecord.search.isChild;
         this.nsRecord.search.parent = this.nsRecord.search.isParent ? this.nsRecord.search.nsId : this.nsRecord.record.getValue("parent");
     },
 
-    setProductValue(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+    setProductValue(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
         if (this.nsRecord.search.isParent) {
             if (this.esRecord.product) {
                 this.esRecord = this.esRecord.product;
@@ -88,7 +88,7 @@ export const ITEM_EXPORT = {
         }
     },
 
-    setVariantValue(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+    setVariantValue(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
         if (this.nsRecord.search.isChild) {
             if (this.esRecord.variant) {
                 this.esRecord = this.esRecord.variant;
@@ -100,7 +100,7 @@ export const ITEM_EXPORT = {
         }
     },
 
-    putItem(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esId: string) {
+    putItem(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esId: string) {
         const { ITEM_EXPORT_PUTURL, ITEM_EXPORT_PUTURL1 } = EXTERNAL_STORES_CONFIG.KEYS;
         const response: Shopify.SingleProduct & Shopify.SingleVariant = parseResponse(https.put({
             url: (this.nsRecord.search.isParent ? this.esConfig[ITEM_EXPORT_PUTURL] : this.esConfig[ITEM_EXPORT_PUTURL1]) + esId + ".json",
@@ -116,7 +116,7 @@ export const ITEM_EXPORT = {
         };
     },
 
-    shouldReduce(context: EntryPoints.MapReduce.mapContext, nsItem: any) {
+    shouldReduce(context: EntryPoints.MapReduce.mapContext, nsItem: Record<string, any>) {
         nsItem.isMatrix && nsItem.esItem && context.write(String(nsItem.parent), nsItem);
     },
 
@@ -128,12 +128,12 @@ export const ITEM_EXPORT = {
             const { ITEM_IMPORT_GETURL1, ITEM_EXPORT_POSTURL, ITEM_EXPORT_PUTURL, ITEM_EXPORT_SORTEDOPTIONS } = EXTERNAL_STORES_CONFIG.KEYS;
             const { store } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
             const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
-            const sortedOptions: any[] = esConfig[ITEM_EXPORT_SORTEDOPTIONS]?.reverse() || [];
+            const sortedOptions: string[] = esConfig[ITEM_EXPORT_SORTEDOPTIONS]?.split(",").map((i: string) => i.trim()).filter((i: string) => i).reverse() || [];
 
-            const sortFunction = (sortedOptions: any[]) => (
+            const sortFunction = (sortedOptions: string[]) => (
                 (
-                    { option1: a1 = null, option2: b1 = null, option3: c1 = null },
-                    { option1: a2 = null, option2: b2 = null, option3: c2 = null }
+                    { option1: a1 = "", option2: b1 = "", option3: c1 = "" },
+                    { option1: a2 = "", option2: b2 = "", option3: c2 = "" }
                 ) =>
                     sortedOptions.indexOf(a2) + sortedOptions.indexOf(b2) + sortedOptions.indexOf(c2) -
                     (sortedOptions.indexOf(a1) + sortedOptions.indexOf(b1) + sortedOptions.indexOf(c1))
@@ -234,7 +234,7 @@ export const ITEM_EXPORT = {
 
 export const ITEM_IMPORT = {
 
-    getItems(maxEsModDate: string | undefined, esConfig: any) {
+    getItems(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
         const { ITEM_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
         const response = parseResponse(https.get({
             url: maxEsModDate ? esConfig[ITEM_IMPORT_GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_GETURL],
@@ -254,7 +254,7 @@ export const ITEM_IMPORT = {
         };
     },
 
-    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: any[], optionFieldMap: any, nsId: string; }) {
+    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: Record<string, any>[], optionFieldMap: Record<string, any>, nsId: string; }) {
         esItem.variants?.map((value, index) => esItem.nsId && context.write(String(index), {
             ...value,
             productNsId: esItem.nsId,
@@ -262,43 +262,53 @@ export const ITEM_IMPORT = {
         }));
     },
 
-    setParentValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
+    setParentValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
         !this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
     },
 
-    setChildValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esField: string) {
+    setChildValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
         this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
     },
 
-    setParentRawValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, rawValue: string) {
+    setParentRawValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, rawValue: string) {
         !this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
     },
 
-    setChildRawValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, rawValue: string) {
+    setChildRawValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, rawValue: string) {
         this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
     },
 
-    setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, arrField: string, esField: string, esValueField: string) {
+    setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, arrField: string, esField: string, esValueField: string) {
         if (this.esRecord.productNsId) return;
         // when you don't know ns field
-        const { ITEM_IMPORT_FIELDMAP } = EXTERNAL_STORES_CONFIG.KEYS;
-        const fieldMap: { [key: string]: string; } = {};
-        this.esConfig[ITEM_IMPORT_FIELDMAP].map((value: string) => {
-            const values = value.trim().split(/\s+/);
+        const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_OPTIONLIST, ITEM_IMPORT_OPTIONFIELD } = EXTERNAL_STORES_CONFIG.KEYS;
+        const options: string[] = [];
+        searchRecords((function (this: typeof options, result: search.Result) {
+            const name = result.getValue(result.columns[0].name) as string;
+            this.push(name);
+        }).bind(options), this.esConfig[ITEM_IMPORT_OPTIONLIST], [], ["name"]);
+
+        const fieldMap: Record<string, string> = {};
+        (this.esConfig[ITEM_IMPORT_FIELDMAP] || []).map((value: string) => {
+            const values = value.split(/\s+/);
             fieldMap[values[0]] = values[1];
         });
         const arr: [] = getProperty(this.esRecord, arrField);
         this.esRecord.optionFieldMap = {};
         arr.map((obj: any, index: number) => {
-            const nsField = fieldMap[getProperty(obj, esField)];
+            const nsField: string = fieldMap[getProperty(obj, esField)] || this.esConfig[ITEM_IMPORT_OPTIONFIELD] + index;
             this.esRecord.optionFieldMap[`option${index + 1}`] = nsField;
-            const value = getProperty(obj, esValueField);
-            const options = this.nsRecord.getField({ fieldId: "" }).getSelectOptions().map(({ text }) => text);
-            this.nsRecord.setText(nsField, value);
+            const values = getProperty(obj, esValueField);
+            values.map((value: string) => {
+                if (!options.includes(String(value))) {
+                    record.create({ type: this.esConfig[ITEM_IMPORT_OPTIONLIST], isDynamic: true }).setValue("name", value).save();
+                }
+            });
+            this.nsRecord.setText(nsField, values);
         });
     },
 
-    setChildMatrixOptions(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }) {
+    setChildMatrixOptions(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }) {
         if (!this.esRecord.productNsId) return;
         for (const [esField, nsField] of Object.entries(this.esRecord.optionFieldMap)) {
             this.nsRecord.setText("matrixoption" + nsField as string, this.esRecord[esField]);

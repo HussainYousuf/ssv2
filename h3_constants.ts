@@ -63,6 +63,8 @@ export default {
                 ITEM_IMPORT_FUNCTION: "item_import_function",
                 ITEM_IMPORT_GETURL: "item_import_geturl",
                 ITEM_IMPORT_GETURL1: "item_import_geturl1",
+                ITEM_IMPORT_OPTIONLIST: "item_import_optionlist",
+                ITEM_IMPORT_OPTIONFIELD: "item_import_optionfield",
                 ITEM_EXPORT_FILTERS: "item_export_filters",
                 ITEM_EXPORT_LIMIT: "item_export_limit",
                 ITEM_EXPORT_COLUMNS: "item_export_columns",

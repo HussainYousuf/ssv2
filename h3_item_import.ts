@@ -81,8 +81,8 @@ function process(wrapper: any, esItem: any) {
             record.load({ type: recType, id: nsId, isDynamic: true }) :
             record.create({ type: recType, isDynamic: true });
 
-        for (const value of esConfig[EXTERNAL_STORES_CONFIG.KEYS.ITEM_IMPORT_FUNCTION] as [string]) {
-            const values = value.trim().split(/\s+/);
+        for (const value of esConfig[EXTERNAL_STORES_CONFIG.KEYS.ITEM_IMPORT_FUNCTION] as string[]) {
+            const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
             const _function = wrapper[functionName] || functions[functionName];

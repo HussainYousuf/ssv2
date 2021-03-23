@@ -57,8 +57,8 @@ function getEsConfig(store: string, permission: string) {
     const esConfig = {};
     const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION, TYPE, } = EXTERNAL_STORES_CONFIG.KEYS;
     function callback(this: any, result: search.Result) {
-        const key = result.getValue(result.columns[0].name) as string;
-        const value = result.getValue(result.columns[1].name) as string;
+        const key = (result.getValue(result.columns[0].name) as string).trim();
+        const value = (result.getValue(result.columns[1].name) as string).trim();
         if ([ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION].includes(key)) this[key] ? this[key].push(value) : this[key] = [value];
         else this[key] = value;
     }

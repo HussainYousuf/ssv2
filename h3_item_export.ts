@@ -87,8 +87,8 @@ function process(wrapper: any, nsItem: any) {
             esConfig
         });
 
-        for (const value of esConfig[EXTERNAL_STORES_CONFIG.KEYS.ITEM_EXPORT_FUNCTION] as [string]) {
-            const values = value.trim().split(/\s+/);
+        for (const value of esConfig[EXTERNAL_STORES_CONFIG.KEYS.ITEM_EXPORT_FUNCTION] as string[]) {
+            const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
             const _function = wrapper[functionName] || functions[functionName];
