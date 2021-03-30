@@ -27,10 +27,10 @@ function parseResponse(response: https.ClientResponse) {
 export const ITEM_EXPORT = {
 
     getItems(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>) {
-        const { ITEM_EXPORT_FILTERS, ITEM_EXPORT_LIMIT } = EXTERNAL_STORES_CONFIG.KEYS;
+        const { ITEM_EXPORT_SEARCHID, ITEM_EXPORT_LIMIT } = EXTERNAL_STORES_CONFIG.KEYS;
 
         const { filterExpression: filters, columns } = search.load({
-            id: esConfig[ITEM_EXPORT_FILTERS]
+            id: esConfig[ITEM_EXPORT_SEARCHID]
         });
 
         columns.push(
@@ -125,7 +125,7 @@ export const ITEM_EXPORT = {
 
         try {
             const key = context.key;
-            const { ITEM_IMPORT_GETURL1, ITEM_EXPORT_POSTURL, ITEM_EXPORT_PUTURL, ITEM_EXPORT_SORTEDOPTIONS } = EXTERNAL_STORES_CONFIG.KEYS;
+            const { ITEM_EXPORT_GETURL, ITEM_EXPORT_POSTURL, ITEM_EXPORT_PUTURL, ITEM_EXPORT_SORTEDOPTIONS } = EXTERNAL_STORES_CONFIG.KEYS;
             const { store } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
             const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
             const sortedOptions: string[] = esConfig[ITEM_EXPORT_SORTEDOPTIONS]?.split(",").map((i: string) => i.trim()).filter((i: string) => i).reverse() || [];
@@ -174,7 +174,7 @@ export const ITEM_EXPORT = {
                 if (!productEsId) throw Error(`make sure product {nsId: ${key}} is exported`);
 
                 response = parseResponse(https.get({
-                    url: esConfig[ITEM_IMPORT_GETURL1] + productEsId + ".json",
+                    url: esConfig[ITEM_EXPORT_GETURL] + productEsId + ".json",
                 }));
                 const query = response;
                 query.product.variants.map((variant: any) => existingVariantIds.push(variant.id));
@@ -301,7 +301,10 @@ export const ITEM_IMPORT = {
             const values = getProperty(obj, esValueField);
             values.map((value: string) => {
                 if (!options.includes(String(value))) {
-                    record.create({ type: this.esConfig[ITEM_IMPORT_OPTIONLIST], isDynamic: true }).setValue("name", value).save();
+                    record.create({ type: this.esConfig[ITEM_IMPORT_OPTIONLIST], isDynamic: true })
+                        .setValue("name", value)
+                        .setValue("abbreviation", value.substring(0, 15))
+                        .save();
                 }
             });
             this.nsRecord.setText(nsField, values);
