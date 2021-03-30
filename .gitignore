@@ -1,4 +1,3 @@
 node_modules
-ScriptTypes.js
-notes.json
 package-lock.json
+dist

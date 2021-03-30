@@ -21,7 +21,11 @@ export function onRequest(context: types.EntryPoints.Suitelet.onRequestContext) 
             name: "Content-Type",
             value: "application/json"
         });
-        if (request.method == "POST" && ["file", "folder"].includes(parameters.type) && parameters.key == key) {
+        if (request.method == "POST" && ["file", "folder", "ping"].includes(parameters.type) && parameters.key == key) {
+            if (parameters.type == "ping") {
+                response.write(JSON.stringify({ status: true }));
+                return;
+            }
             let id;
             if (parameters.type == "file") {
                 id = file.create({
