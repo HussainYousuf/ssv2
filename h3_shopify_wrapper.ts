@@ -19,7 +19,6 @@ function parseResponse(response: https.ClientResponse) {
         else return result;
     } catch (error) {
         error = Error(response.code + " " + response.body);
-        log.error(error);
         throw Error(error);
     }
 }
@@ -121,10 +120,10 @@ export const ITEM_EXPORT = {
     },
 
     reduce(context: EntryPoints.MapReduce.reduceContext) {
-        const values = context.values.map(value => JSON.parse(value));
 
         try {
             const key = context.key;
+            const values = context.values.map(value => JSON.parse(value));
             const { ITEM_EXPORT_GETURL, ITEM_EXPORT_POSTURL, ITEM_EXPORT_PUTURL, ITEM_EXPORT_SORTEDOPTIONS } = EXTERNAL_STORES_CONFIG.KEYS;
             const { store } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
             const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
@@ -212,15 +211,15 @@ export const ITEM_EXPORT = {
                     type: RECORDS_SYNC.ID,
                     values: {
                         [RECORDS_SYNC.FIELDS.EXTERNAL_ID]: String(rec.esId),
-                        [RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE]: rec.esModDate,
+                        [RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE]: new Date(rec.esModDate),
                         [RECORDS_SYNC.FIELDS.STATUS]: RECORDS_SYNC.VALUES.STATUSES.EXPORTED
                     }
                 });
             });
         } catch (error) {
-            values.map(value => {
+            context.values.map(value => {
                 record.submitFields({
-                    id: value.rsId,
+                    id: JSON.parse(value).rsId,
                     type: RECORDS_SYNC.ID,
                     values: {
                         [RECORDS_SYNC.FIELDS.ERROR_LOG]: error.message
@@ -228,6 +227,7 @@ export const ITEM_EXPORT = {
                 });
             });
         }
+
     }
 
 };

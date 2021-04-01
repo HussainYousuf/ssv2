@@ -84,7 +84,7 @@ function getEsConfig(store: string, permission: string) {
         ]
     );
     log.debug("common.getEsConfig => esConfig", esConfig);
-    return esConfig as { [key: string]: string; };
+    return esConfig as Record<string, any>;
 }
 
 export function getWrapper(): any {

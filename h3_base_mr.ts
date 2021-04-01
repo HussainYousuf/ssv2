@@ -11,8 +11,10 @@ import runtime from "N/runtime";
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
     const currentScript = runtime.getCurrentScript();
-    if (currentScript.deploymentId == constants.SCRIPTS_DEPLOYMENTS.BASE_MR_SCH && !areOtherDeploymentsRunning(currentScript.id, currentScript.deploymentId))
+    if (currentScript.deploymentId == constants.SCRIPTS_DEPLOYMENTS.BASE_MR_SCH && !areOtherDeploymentsRunning(currentScript.id, currentScript.deploymentId)) {
         init();
+        throw Error();
+    }
     else
         return getWrapper().getInputData?.(context) || getPermission().getInputData(context);
 }
@@ -34,7 +36,7 @@ export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
 function init() {
     const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
-    const storePermissions: { store: string, permission: string; }[] = []
+    const storePermissions: { store: string, permission: string; }[] = [];
     function callback(this: typeof storePermissions, result: search.Result) {
         const store = result.getValue(result.columns[0].name) as string;
         const permissions = decrypt(result.getValue(result.columns[1].name) as string);

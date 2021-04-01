@@ -75,7 +75,7 @@ function process(wrapper: any, nsItem: any) {
     rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_STORE, store)
         .setValue(RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
         .setValue(RECORDS_SYNC.FIELDS.RECORD_TYPE, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM)
-        .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, nsModDate);
+        .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, format.parse({ type: format.Type.DATETIMETZ, value: nsModDate }));
 
     try {
         const esItem = {};
@@ -142,10 +142,6 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    const wrapper = getWrapper();
-    context.values.map(nsItem => {
-        process(wrapper, nsItem);
-    });
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
