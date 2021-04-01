@@ -55,12 +55,16 @@ export function scheduleScript(storePermissions: { store: string, permission: st
 
 function getEsConfig(store: string, permission: string) {
     const esConfig = {};
-    const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION, TYPE, } = EXTERNAL_STORES_CONFIG.KEYS;
+    const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION, TYPE, ITEM_EXPORT_FUNCTION } = EXTERNAL_STORES_CONFIG.KEYS;
     function callback(this: any, result: search.Result) {
         const key = (result.getValue(result.columns[0].name) as string).trim();
-        const value = (result.getValue(result.columns[1].name) as string).trim();
-        if ([ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION].includes(key)) this[key] ? this[key].push(value) : this[key] = [value];
-        else this[key] = value;
+        const value = (result.getValue(result.columns[1].name) as string).split("\n").map(value => value.trim()).filter(value => value);
+        if (value.length) {
+            if ([ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION, ITEM_EXPORT_FUNCTION].includes(key))
+                this[key] = value;
+            else
+                this[key] = value[0];
+        }
     }
     searchRecords(
         callback.bind(esConfig),
