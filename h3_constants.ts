@@ -39,6 +39,7 @@ export default {
                 RECORD_TYPES: {
                     ITEM: "Item",
                     SALESORDER: "Salesorder",
+                    CUSTOMER: "Customer",
                 },
                 STATUSES: {
                     IMPORTED: "Imported",
@@ -71,10 +72,13 @@ export default {
                 ITEM_EXPORT_PUTURL: "item_export_puturl",
                 ITEM_EXPORT_PUTURL1: "item_export_puturl1",
                 ITEM_EXPORT_POSTURL: "item_export_posturl",
-                ITEM_EXPORT_SORTEDOPTIONS: "item_export_sortedoptions"
-
+                ITEM_EXPORT_SORTEDOPTIONS: "item_export_sortedoptions",
+                CUSTOMER_IMPORT_FUNCTION: "customer_import_function",
+                CUSTOMER_EXPORT_FUNCTION: "customer_export_function",
             },
             PERMISSIONS: {
+                CUSTOMER_IMPORT: "CUSTOMER_IMPORT",
+                CUSTOMER_EXPORT: "CUSTOMER_EXPORT",
                 ITEM_IMPORT: "ITEM_IMPORT",
                 ITEM_EXPORT: "ITEM_EXPORT",
                 SALESORDER_IMPORT: "SALESORDER_IMPORT",
@@ -82,7 +86,8 @@ export default {
             },
             TYPES: {
                 SHOPIFY: "SHOPIFY",
-                SALESFORCE: "SALESFORCE"
+                SALESFORCE: "SALESFORCE",
+                MAGENTO2: "MAGENTO2"
             }
         }
     }
