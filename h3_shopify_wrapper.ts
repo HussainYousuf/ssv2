@@ -6,7 +6,7 @@ import record from "N/record";
 import runtime from "N/runtime";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, functions, searchRecords } from './h3_common';
+import { getFormattedDateTime, getProperty, functions, searchRecords, getPermission } from './h3_common';
 import { Shopify } from "./h3_types";
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -211,6 +211,7 @@ export const ITEM_EXPORT = {
                     type: RECORDS_SYNC.ID,
                     values: {
                         [RECORDS_SYNC.FIELDS.EXTERNAL_ID]: String(rec.esId),
+                        [RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE]: format.parse({ type: format.Type.DATETIMETZ, value: rec.nsModDate }),
                         [RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE]: new Date(rec.esModDate),
                         [RECORDS_SYNC.FIELDS.STATUS]: RECORDS_SYNC.VALUES.STATUSES.EXPORTED
                     }
@@ -317,6 +318,13 @@ export const ITEM_IMPORT = {
             this.nsRecord.setText("matrixoption" + nsField as string, this.esRecord[esField]);
         }
     },
+
+    reduce(context: EntryPoints.MapReduce.reduceContext) {
+        context.values.map(value => {
+            const esItem = ITEM_IMPORT.parseItem(value);
+            getPermission().process(ITEM_IMPORT, esItem);
+        });
+    }
 
 };
 

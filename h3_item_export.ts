@@ -46,7 +46,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     return wrapper.getItems(maxNsModDate, esConfig);
 }
 
-function process(wrapper: any, nsItem: any) {
+export function process(wrapper: any, nsItem: any) {
 
     log.debug("process => nsItem", nsItem);
 
@@ -74,8 +74,7 @@ function process(wrapper: any, nsItem: any) {
 
     rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_STORE, store)
         .setValue(RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
-        .setValue(RECORDS_SYNC.FIELDS.RECORD_TYPE, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM)
-        .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, format.parse({ type: format.Type.DATETIMETZ, value: nsModDate }));
+        .setValue(RECORDS_SYNC.FIELDS.RECORD_TYPE, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM);
 
     try {
         const esItem = {};
@@ -117,6 +116,7 @@ function process(wrapper: any, nsItem: any) {
         }
 
         rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, result.esId)
+            .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, format.parse({ type: format.Type.DATETIMETZ, value: nsModDate }))
             .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, result.esModDate)
             .setValue(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.EXPORTED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, "");
@@ -142,7 +142,9 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
+    throw Error();
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
+    throw Error();
 }
