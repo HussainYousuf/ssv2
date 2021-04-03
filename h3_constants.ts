@@ -74,7 +74,9 @@ export default {
                 ITEM_EXPORT_POSTURL: "item_export_posturl",
                 ITEM_EXPORT_SORTEDOPTIONS: "item_export_sortedoptions",
                 CUSTOMER_IMPORT_FUNCTION: "customer_import_function",
+                CUSTOMER_IMPORT_GETURL: "customer_import_geturl",
                 CUSTOMER_EXPORT_FUNCTION: "customer_export_function",
+                CUSTOMER_EXPORT_SEARCHID: "customer_export_searchid"
             },
             PERMISSIONS: {
                 CUSTOMER_IMPORT: "CUSTOMER_IMPORT",

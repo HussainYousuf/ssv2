@@ -328,3 +328,66 @@ export const ITEM_IMPORT = {
 
 };
 
+export const CUSTOMER_IMPORT = {
+
+    getCustomers(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
+        const { CUSTOMER_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
+        const response = parseResponse(https.get({
+            url: maxEsModDate ? esConfig[CUSTOMER_IMPORT_GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[CUSTOMER_IMPORT_GETURL],
+        }));
+
+        log.debug("shopify_wrapper.getCustomers => response", response);
+        return JSON.parse(response).customers;
+    },
+
+    parseCustomer(customer: string) {
+        const esCustomer: Shopify.Customer = JSON.parse(customer);
+        return {
+            ...esCustomer,
+            esId: String(esCustomer.id),
+            esModDate: new Date(esCustomer.updated_at),
+            recType: record.Type.CUSTOMER,
+        };
+    },
+
+};
+
+export const CUSTOMER_EXPORT = {
+    getCustomers(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>) {
+        const { CUSTOMER_EXPORT_SEARCHID } = EXTERNAL_STORES_CONFIG.KEYS;
+
+        const { filterExpression: filters, columns } = search.load({
+            id: esConfig[CUSTOMER_EXPORT_SEARCHID]
+        });
+
+        columns.push(
+            search.createColumn({ name: "formulatext_modified", formula: "to_char({lastmodifieddate},'yyyy-mm-dd hh24:mi:ss')" }),
+        );
+
+        if (maxNsModDate) {
+            maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
+            filters.length && filters.push("AND");
+            filters.push([
+                [`formulatext: CASE WHEN to_char({lastmodifieddate},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
+            ]);
+        }
+
+        return search.create({
+            type: search.Type.CUSTOMER,
+            filters,
+            columns
+        });
+    },
+
+    parseCustomer(customer: string) {
+        const nsCustomer = JSON.parse(customer);
+        const { formulatext_modified } = nsCustomer.values;
+        const maxNsModDate = new Date((formulatext_modified as string).replace(" ", "T") + "Z");
+        return {
+            ...nsCustomer.values,
+            nsId: nsCustomer.id,
+            nsModDate: format.format({ value: maxNsModDate, type: format.Type.DATETIMETZ, timezone: format.Timezone.GMT }),
+            recType: nsCustomer.recordType,
+        };
+    },
+};
