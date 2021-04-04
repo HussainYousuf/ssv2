@@ -255,6 +255,14 @@ export const ITEM_IMPORT = {
         };
     },
 
+    getNsModDate(nsId: string, rsRecType: string) {
+        return search.create({
+            type: rsRecType,
+            id: nsId,
+            columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })],
+        }).run().getRange(0, 1)[0].getValue("formulatext_modified");
+    },
+
     shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: Record<string, any>[], optionFieldMap: Record<string, any>, nsId: string; }) {
         esItem.variants?.map((value, index) => esItem.nsId && context.write(String(index), {
             ...value,

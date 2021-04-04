@@ -60,6 +60,7 @@ export default {
                 URL: "url",
                 KEY: "key",
                 ACCESSTOKEN: "accesstoken",
+                FUNCTIONS: "functions",
                 ITEM_IMPORT_FIELDMAP: "item_import_fieldmap",
                 ITEM_IMPORT_FUNCTION: "item_import_function",
                 ITEM_IMPORT_GETURL: "item_import_geturl",
