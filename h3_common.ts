@@ -29,6 +29,17 @@ export function init() {
     return { store, permission, rsRecType, rsStatus, filters, esConfig };
 }
 
+export function getFailedRecords(column: string) {
+    const { filters } = init();
+    filters.pop();
+    filters.push([RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, ""]);
+    const failedRecords: string[] = [];
+    searchRecords((function (result: search.Result) {
+        failedRecords.push(String(result.getValue(column)));
+    }), RECORDS_SYNC.ID, filters, [column]);
+    return failedRecords;
+}
+
 // serializes date obj to yyyy-mm-dd hh24:mi:ss
 export function getFormattedDateTime(dateObj: Date) {
     return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60 * 1000).toISOString().split(".")[0].replace("T", " ");

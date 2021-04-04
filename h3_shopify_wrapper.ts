@@ -5,7 +5,7 @@ import https from 'N/https';
 import record from "N/record";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, functions, searchRecords, getOperation, init } from './h3_common';
+import { getFormattedDateTime, getProperty, functions, searchRecords, getOperation, init, getFailedRecords } from './h3_common';
 import { Shopify } from "./h3_types";
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -21,17 +21,29 @@ function parseResponse(response: https.ClientResponse) {
     }
 }
 
+function getRecords(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
+    const { permission } = esConfig;
+    const { _GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
+    let response = parseResponse(https.get({
+        url: maxEsModDate ? esConfig[permission + _GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[permission + _GETURL],
+    }));
+    log.debug("shopify_wrapper.getRecords => response", response);
+    response = JSON.parse(response);
+    if (Object.values(response as Record<string, any>)[0].length) {
+        //reschedule script
+    }
+    else {
+        // failed records sync
+        getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID);
+    }
+    return response;
+}
+
 export const ITEM_IMPORT = {
 
     getRecords(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
-        const { permission } = esConfig;
-        const { _GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
-        const response = parseResponse(https.get({
-            url: maxEsModDate ? esConfig[permission + _GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[permission + _GETURL],
-        }));
+        const { products } = getRecords(maxEsModDate, esConfig);
 
-        log.debug("shopify_wrapper.getRecords => response", response);
-        return JSON.parse(response).products;
     },
 
     parseRecord(_record: string) {

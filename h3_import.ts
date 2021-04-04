@@ -9,7 +9,6 @@ import format from 'N/format';
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const wrapper = getWrapper();
     const { filters, esConfig } = init();
 
     const maxEsModDateCol = search.createColumn({
@@ -27,7 +26,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
     log.debug("import.getInputData => maxEsModDate", maxEsModDate);
 
-    return wrapper.getRecords(maxEsModDate, esConfig);
+    return getWrapper().getRecords(maxEsModDate, esConfig);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
