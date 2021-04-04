@@ -1,5 +1,13 @@
 export const IMPORT = {
 
+    getNsModDate(nsId: string, rsRecType: string) {
+        return search.create({
+            type: rsRecType,
+            id: nsId,
+            columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })],
+        }).run().getRange(0, 1)[0].getValue("formulatext_modified");
+    },
+
 };
 
 export const EXPORT = {

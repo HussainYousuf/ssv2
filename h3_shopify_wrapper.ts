@@ -6,7 +6,7 @@ import record from "N/record";
 import runtime from "N/runtime";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, functions, searchRecords, getPermission } from './h3_common';
+import { getFormattedDateTime, getProperty, functions, searchRecords, getOperation, init } from './h3_common';
 import { Shopify } from "./h3_types";
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -24,40 +24,33 @@ function parseResponse(response: https.ClientResponse) {
 }
 
 export const ITEM_IMPORT = {
-    
+
     getRecords(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
-        const { ITEM_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
+        const { permission } = esConfig;
+        const { _GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
         const response = parseResponse(https.get({
-            url: maxEsModDate ? esConfig[ITEM_IMPORT_GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_GETURL],
+            url: maxEsModDate ? esConfig[permission + _GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[permission + _GETURL],
         }));
 
         log.debug("shopify_wrapper.getRecords => response", response);
         return JSON.parse(response).products;
     },
 
-    parseRecord(item: string) {
-        const esItem: Shopify.Product | Shopify.Variant = JSON.parse(item);
+    parseRecord(_record: string) {
+        const esRecord: Shopify.Product | Shopify.Variant = JSON.parse(_record);
         return {
-            ...esItem,
-            esId: String(esItem.id),
-            esModDate: new Date(esItem.updated_at),
+            ...esRecord,
+            esId: String(esRecord.id),
+            esModDate: new Date(esRecord.updated_at),
             recType: record.Type.INVENTORY_ITEM,
         };
     },
 
-    getNsModDate(nsId: string, rsRecType: string) {
-        return search.create({
-            type: rsRecType,
-            id: nsId,
-            columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })],
-        }).run().getRange(0, 1)[0].getValue("formulatext_modified");
-    },
-
-    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: Record<string, any>[], optionFieldMap: Record<string, any>, nsId: string; }) {
-        esItem.variants?.map((value, index) => esItem.nsId && context.write(String(index), {
+    shouldReduce(context: EntryPoints.MapReduce.mapContext, esRecord: { variants: Record<string, any>[], optionFieldMap: Record<string, any>, nsId: string; }) {
+        esRecord.variants?.map((value, index) => esRecord.nsId && context.write(String(index), {
             ...value,
-            productNsId: esItem.nsId,
-            optionFieldMap: esItem.optionFieldMap
+            productNsId: esRecord.nsId,
+            optionFieldMap: esRecord.optionFieldMap
         }));
     },
 
@@ -79,28 +72,29 @@ export const ITEM_IMPORT = {
 
     setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, arrField: string, esField: string, esValueField: string) {
         if (this.esRecord.productNsId) return;
-        // when you don't know ns field
-        const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_OPTIONLIST, ITEM_IMPORT_OPTIONFIELD } = EXTERNAL_STORES_CONFIG.KEYS;
+        // when you don't know ns field use field_map
+        const { permission } = this.esConfig;
+        const { _FIELDMAP, _OPTIONLIST, _OPTIONFIELD } = EXTERNAL_STORES_CONFIG.KEYS;
         const options: string[] = [];
         searchRecords((function (this: typeof options, result: search.Result) {
             const name = result.getValue(result.columns[0].name) as string;
             this.push(name);
-        }).bind(options), this.esConfig[ITEM_IMPORT_OPTIONLIST], [], ["name"]);
+        }).bind(options), this.esConfig[permission + _OPTIONLIST], [], ["name"]);
 
         const fieldMap: Record<string, string> = {};
-        (this.esConfig[ITEM_IMPORT_FIELDMAP] || []).map((value: string) => {
+        (this.esConfig[permission + _FIELDMAP] || []).map((value: string) => {
             const values = value.split(/\s+/);
             fieldMap[values[0]] = values[1];
         });
         const arr: [] = getProperty(this.esRecord, arrField);
         this.esRecord.optionFieldMap = {};
         arr.map((obj: any, index: number) => {
-            const nsField: string = fieldMap[getProperty(obj, esField)] || this.esConfig[ITEM_IMPORT_OPTIONFIELD] + (index + 1);
+            const nsField: string = fieldMap[getProperty(obj, esField)] || this.esConfig[permission + _OPTIONFIELD] + (index + 1);
             this.esRecord.optionFieldMap[`option${index + 1}`] = nsField;
             const values = getProperty(obj, esValueField);
             values.map((value: string) => {
                 if (!options.includes(String(value))) {
-                    record.create({ type: this.esConfig[ITEM_IMPORT_OPTIONLIST], isDynamic: true })
+                    record.create({ type: this.esConfig[permission + _OPTIONLIST], isDynamic: true })
                         .setValue("name", value)
                         .setValue("abbreviation", value.substring(0, 15))
                         .save();
@@ -120,7 +114,7 @@ export const ITEM_IMPORT = {
     reduce(context: EntryPoints.MapReduce.reduceContext) {
         context.values.map(value => {
             const esItem = ITEM_IMPORT.parseRecord(value);
-            getPermission().process(ITEM_IMPORT, esItem);
+            getOperation().process(ITEM_IMPORT, esItem);
         });
     }
 
@@ -160,9 +154,10 @@ export const ITEM_EXPORT = {
     },
 
     putItem(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esId: string) {
-        const { ITEM_EXPORT_PUTURL, ITEM_EXPORT_PUTURL1 } = EXTERNAL_STORES_CONFIG.KEYS;
+        const { permission } = this.esConfig;
+        const { _PUTURL, _PUTURL1 } = EXTERNAL_STORES_CONFIG.KEYS;
         const response: Shopify.SingleProduct & Shopify.SingleVariant = parseResponse(https.put({
-            url: (this.nsRecord.search.isParent ? this.esConfig[ITEM_EXPORT_PUTURL] : this.esConfig[ITEM_EXPORT_PUTURL1]) + esId + ".json",
+            url: (this.nsRecord.search.isParent ? this.esConfig[permission + _PUTURL] : this.esConfig[permission + _PUTURL1]) + esId + ".json",
             body: JSON.stringify(this.esRecord),
             headers: {
                 "Content-Type": "application/json"
@@ -182,12 +177,11 @@ export const ITEM_EXPORT = {
     reduce(context: EntryPoints.MapReduce.reduceContext) {
 
         try {
+            const { store, permission, esConfig, rsStatus, rsRecType } = init();
             const key = context.key;
             const values = context.values.map(value => JSON.parse(value));
-            const { ITEM_EXPORT_GETURL, ITEM_EXPORT_POSTURL, ITEM_EXPORT_PUTURL, ITEM_EXPORT_SORTEDOPTIONS } = EXTERNAL_STORES_CONFIG.KEYS;
-            const { store } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
-            const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
-            const sortedOptions: string[] = esConfig[ITEM_EXPORT_SORTEDOPTIONS]?.split(",").map((i: string) => i.trim()).filter((i: string) => i).reverse() || [];
+            const { _GETURL, _POSTURL, _PUTURL, _SORTEDOPTIONS } = EXTERNAL_STORES_CONFIG.KEYS;
+            const sortedOptions: string[] = esConfig[permission + _SORTEDOPTIONS]?.split(",").map((i: string) => i.trim()).filter((i: string) => i).reverse() || [];
 
             const sortFunction = (sortedOptions: string[]) => (
                 (
@@ -210,7 +204,7 @@ export const ITEM_EXPORT = {
                 query.product.variants = values.map(value => value.esItem.variant).sort(sortFunction(sortedOptions));
                 if (!query.product.variants.length) throw Error(`Can't create product {nsId: ${key}} without atleast one variant`);
                 response = parseResponse(https.post({
-                    url: esConfig[ITEM_EXPORT_POSTURL],
+                    url: esConfig[permission + _POSTURL],
                     body: JSON.stringify(query),
                     headers: {
                         "Content-Type": "application/json"
@@ -223,7 +217,7 @@ export const ITEM_EXPORT = {
                     filters: [
                         [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
                         "AND",
-                        [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, RECORDS_SYNC.VALUES.RECORD_TYPES.ITEM],
+                        [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, rsRecType],
                         "AND",
                         [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, key]
                     ],
@@ -233,14 +227,14 @@ export const ITEM_EXPORT = {
                 if (!productEsId) throw Error(`make sure product {nsId: ${key}} is exported`);
 
                 response = parseResponse(https.get({
-                    url: esConfig[ITEM_EXPORT_GETURL] + productEsId + ".json",
+                    url: esConfig[permission + _GETURL] + productEsId + ".json",
                 }));
                 const query = response;
                 query.product.variants.map((variant: any) => existingVariantIds.push(variant.id));
                 query.product.variants.push(...values.map(value => value.esItem.variant));
                 query.product.variants.sort(sortFunction(sortedOptions));
                 response = parseResponse(https.post({
-                    url: esConfig[ITEM_EXPORT_PUTURL] + productEsId + ".json",
+                    url: esConfig[permission + _PUTURL] + productEsId + ".json",
                     body: JSON.stringify(query),
                     headers: {
                         "Content-Type": "application/json"
@@ -273,7 +267,7 @@ export const ITEM_EXPORT = {
                         [RECORDS_SYNC.FIELDS.EXTERNAL_ID]: String(rec.esId),
                         [RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE]: format.parse({ type: format.Type.DATETIMETZ, value: rec.nsModDate }),
                         [RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE]: new Date(rec.esModDate),
-                        [RECORDS_SYNC.FIELDS.STATUS]: RECORDS_SYNC.VALUES.STATUSES.EXPORTED
+                        [RECORDS_SYNC.FIELDS.STATUS]: rsStatus
                     }
                 });
             });

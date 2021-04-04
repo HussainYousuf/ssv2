@@ -6,8 +6,8 @@ import constants from './h3_constants';
 import task from "N/task";
 import * as shopifyWrapper from "./h3_shopify_wrapper";
 import * as salesforceWrapper from "./h3_salesforce_wrapper";
-import * as itemImport from "./h3_item_import";
-import * as itemExport from "./h3_item_export";
+import * as item from "./h3_item";
+import * as customer from "./h3_customer";
 import * as baseImport from "./h3_import";
 import * as baseExport from "./h3_export";
 
@@ -16,8 +16,8 @@ const { EXTERNAL_STORES_CONFIG, RECORDS_SYNC } = constants.RECORDS;
 const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
 
 export function init() {
-    const { store, permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
     const esConfig: Record<string, any> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
+    const { store, permission }: Record<string, string> = esConfig;
     const [rsRecType, rsStatus] = permission.split("_");
     const filters = [
         [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
@@ -71,7 +71,7 @@ export function scheduleScript(storePermissions: { store: string, permission: st
 }
 
 function getEsConfig(store: string, permission: string) {
-    const esConfig = {};
+    const esConfig = { store, permission };
     const { _FIELDMAP, _FUNCTIONS, TYPE } = EXTERNAL_STORES_CONFIG.KEYS;
     function callback(this: any, result: search.Result) {
         const key = (result.getValue(result.columns[0].name) as string).trim();
@@ -101,12 +101,13 @@ function getEsConfig(store: string, permission: string) {
         ]
     );
     log.debug("common.getEsConfig => esConfig", esConfig);
-    return esConfig as Record<string, any>;
+    return esConfig as Record<string, string | string[]>;
 }
 
 export function getWrapper(): any {
+    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
     function getWrapper(): any {
-        const type: string = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string)[EXTERNAL_STORES_CONFIG.KEYS.TYPE];
+        const type: string = esConfig[EXTERNAL_STORES_CONFIG.KEYS.TYPE];
         switch (type.toUpperCase()) {
             case EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
                 return shopifyWrapper;
@@ -116,7 +117,7 @@ export function getWrapper(): any {
                 throw Error(`common.getWrapper => unknown type ${type}`);
         }
     }
-    const { permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+    const { permission }: Record<string, string> = esConfig
     return getWrapper()[permission.toUpperCase()];
 }
 
