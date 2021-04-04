@@ -1,32 +1,14 @@
 import { EntryPoints } from 'N/types';
 import record from 'N/record';
-import runtime from 'N/runtime';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, functions } from './h3_common';
+import { getWrapper, functions, init, getRecord } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
-const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
-
-function init() {
-    const { store, permission } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
-    const rsRecType = permission.split("_")[0];
-    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
-    const filters = [
-        [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
-        "AND",
-        [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, rsRecType],
-        "AND",
-        [RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, RECORDS_SYNC.VALUES.STATUSES.EXPORTED],
-    ];
-    return { store, permission, rsRecType, filters, esConfig };
-}
-
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const wrapper = getWrapper();
     const { filters, esConfig } = init();
 
     const maxNsModDateCol = search.createColumn({
@@ -43,7 +25,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     if (maxNsModDate) maxNsModDate = format.parse({ type: format.Type.DATETIMETZ, value: maxNsModDate }) as Date;
     log.debug("export.getInputData => maxNsModDate", maxNsModDate);
 
-    return wrapper.getRecords(maxNsModDate, esConfig);
+    return getRecord().getRecords(maxNsModDate, esConfig);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
@@ -65,7 +47,7 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
 
     log.debug("process => nsSearch", nsSearch);
 
-    const { store, permission, rsRecType, filters, esConfig } = init();
+    const { store, permission, rsRecType, rsStatus, filters, esConfig } = init();
     const { nsId, nsModDate, recType } = nsSearch;
 
     filters.pop();
@@ -133,13 +115,13 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
         rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, result.esId)
             .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, format.parse({ type: format.Type.DATETIMETZ, value: nsModDate }))
             .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE, result.esModDate)
-            .setValue(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.EXPORTED)
+            .setValue(RECORDS_SYNC.FIELDS.STATUS, rsStatus)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, "");
 
-        log.debug("Success", `${rsRecType} with id ${nsId}, ${RECORDS_SYNC.VALUES.STATUSES.EXPORTED}`);
+        log.debug("Success", `${rsRecType} with id ${nsId}, ${rsStatus}`);
 
     } catch (error) {
-        rsRecord.setValue(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.STATUSES.FAILED)
+        rsRecord.setValue(RECORDS_SYNC.FIELDS.STATUS, RECORDS_SYNC.VALUES.FAILED)
             .setValue(RECORDS_SYNC.FIELDS.ERROR_LOG, error.message);
     }
 

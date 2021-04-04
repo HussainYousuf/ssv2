@@ -6,7 +6,7 @@
 import { EntryPoints } from 'N/types';
 import search from 'N/search';
 import constants from './h3_constants';
-import { getWrapper, getPermission, areOtherDeploymentsRunning, searchRecords, scheduleScript } from './h3_common';
+import { getWrapper, getRecord, areOtherDeploymentsRunning, searchRecords, scheduleScript, getOperation } from './h3_common';
 import runtime from "N/runtime";
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
@@ -16,19 +16,19 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
         throw Error();
     }
     else
-        return getWrapper().getInputData?.(context) || getPermission().getInputData(context);
+        return getWrapper().getInputData?.(context) || getRecord().getInputData?.(context) || getOperation().getInputData(context);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
-    return getWrapper().map?.(context) || getPermission().map(context);
+    return getWrapper().map?.(context) || getRecord()?.map(context) || getOperation().map(context);
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    return getWrapper().reduce?.(context) || getPermission().reduce(context);
+    return getWrapper().reduce?.(context) || getRecord()?.reduce(context) || getOperation().reduce(context);
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    return getWrapper().summarize?.(context) || getPermission().summarize(context);
+    return getWrapper().summarize?.(context) || getRecord()?.summarize(context) || getOperation().summarize(context);
 }
 
 

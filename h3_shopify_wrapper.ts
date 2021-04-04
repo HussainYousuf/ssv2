@@ -23,50 +23,110 @@ function parseResponse(response: https.ClientResponse) {
     }
 }
 
-export const ITEM_EXPORT = {
+export const ITEM_IMPORT = {
+    
+    getRecords(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
+        const { ITEM_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
+        const response = parseResponse(https.get({
+            url: maxEsModDate ? esConfig[ITEM_IMPORT_GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_GETURL],
+        }));
 
-    getRecords(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>) {
-        const { ITEM_EXPORT_SEARCHID } = EXTERNAL_STORES_CONFIG.KEYS;
-
-        const { filterExpression: filters, columns } = search.load({
-            id: esConfig[ITEM_EXPORT_SEARCHID]
-        });
-
-        columns.push(
-            search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" }),
-            search.createColumn({ name: "formulatext_lastquantityavailablechange", formula: "to_char({lastquantityavailablechange},'yyyy-mm-dd hh24:mi:ss')" })
-        );
-
-        if (maxNsModDate) {
-            maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
-            filters.length && filters.push("AND");
-            filters.push([
-                [`formulatext: CASE WHEN to_char({modified},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
-                "OR",
-                [`formulatext: CASE WHEN to_char({lastquantityavailablechange},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
-            ]);
-        }
-
-        return search.create({
-            type: search.Type.ITEM,
-            filters,
-            columns
-        });
+        log.debug("shopify_wrapper.getRecords => response", response);
+        return JSON.parse(response).products;
     },
 
     parseRecord(item: string) {
-        const nsItem = JSON.parse(item);
-        const { formulatext_modified, formulatext_lastquantityavailablechange } = nsItem.values;
-        const modified = new Date((formulatext_modified as string).replace(" ", "T") + "Z");
-        const lastquantityavailablechange = formulatext_lastquantityavailablechange ? new Date((formulatext_lastquantityavailablechange as string).replace(" ", "T") + "Z") : new Date(0);
-        const maxNsModDate = modified >= lastquantityavailablechange ? modified : lastquantityavailablechange;
+        const esItem: Shopify.Product | Shopify.Variant = JSON.parse(item);
         return {
-            ...nsItem.values,
-            nsId: nsItem.id,
-            nsModDate: format.format({ value: maxNsModDate, type: format.Type.DATETIMETZ, timezone: format.Timezone.GMT }),
-            recType: nsItem.recordType,
+            ...esItem,
+            esId: String(esItem.id),
+            esModDate: new Date(esItem.updated_at),
+            recType: record.Type.INVENTORY_ITEM,
         };
     },
+
+    getNsModDate(nsId: string, rsRecType: string) {
+        return search.create({
+            type: rsRecType,
+            id: nsId,
+            columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })],
+        }).run().getRange(0, 1)[0].getValue("formulatext_modified");
+    },
+
+    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: Record<string, any>[], optionFieldMap: Record<string, any>, nsId: string; }) {
+        esItem.variants?.map((value, index) => esItem.nsId && context.write(String(index), {
+            ...value,
+            productNsId: esItem.nsId,
+            optionFieldMap: esItem.optionFieldMap
+        }));
+    },
+
+    setParentValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
+        !this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
+    },
+
+    setChildValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
+        this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
+    },
+
+    setParentRawValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, rawValue: string) {
+        !this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
+    },
+
+    setChildRawValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, rawValue: string) {
+        this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
+    },
+
+    setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, arrField: string, esField: string, esValueField: string) {
+        if (this.esRecord.productNsId) return;
+        // when you don't know ns field
+        const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_OPTIONLIST, ITEM_IMPORT_OPTIONFIELD } = EXTERNAL_STORES_CONFIG.KEYS;
+        const options: string[] = [];
+        searchRecords((function (this: typeof options, result: search.Result) {
+            const name = result.getValue(result.columns[0].name) as string;
+            this.push(name);
+        }).bind(options), this.esConfig[ITEM_IMPORT_OPTIONLIST], [], ["name"]);
+
+        const fieldMap: Record<string, string> = {};
+        (this.esConfig[ITEM_IMPORT_FIELDMAP] || []).map((value: string) => {
+            const values = value.split(/\s+/);
+            fieldMap[values[0]] = values[1];
+        });
+        const arr: [] = getProperty(this.esRecord, arrField);
+        this.esRecord.optionFieldMap = {};
+        arr.map((obj: any, index: number) => {
+            const nsField: string = fieldMap[getProperty(obj, esField)] || this.esConfig[ITEM_IMPORT_OPTIONFIELD] + (index + 1);
+            this.esRecord.optionFieldMap[`option${index + 1}`] = nsField;
+            const values = getProperty(obj, esValueField);
+            values.map((value: string) => {
+                if (!options.includes(String(value))) {
+                    record.create({ type: this.esConfig[ITEM_IMPORT_OPTIONLIST], isDynamic: true })
+                        .setValue("name", value)
+                        .setValue("abbreviation", value.substring(0, 15))
+                        .save();
+                }
+            });
+            this.nsRecord.setText(nsField, values);
+        });
+    },
+
+    setChildMatrixOptions(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }) {
+        if (!this.esRecord.productNsId) return;
+        for (const [esField, nsField] of Object.entries(this.esRecord.optionFieldMap)) {
+            this.nsRecord.setText("matrixoption" + nsField as string, this.esRecord[esField]);
+        }
+    },
+
+    reduce(context: EntryPoints.MapReduce.reduceContext) {
+        context.values.map(value => {
+            const esItem = ITEM_IMPORT.parseRecord(value);
+            getPermission().process(ITEM_IMPORT, esItem);
+        });
+    }
+
+};
+
+export const ITEM_EXPORT = {
 
     init(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }) {
         this.nsRecord.search.isParent = this.nsRecord.record.getValue("matrixtype") == "PARENT";
@@ -229,109 +289,6 @@ export const ITEM_EXPORT = {
             });
         }
 
-    }
-
-};
-
-export const ITEM_IMPORT = {
-
-    getRecords(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
-        const { ITEM_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
-        const response = parseResponse(https.get({
-            url: maxEsModDate ? esConfig[ITEM_IMPORT_GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_GETURL],
-        }));
-
-        log.debug("shopify_wrapper.getRecords => response", response);
-        return JSON.parse(response).products;
-    },
-
-    parseRecord(item: string) {
-        const esItem: Shopify.Product | Shopify.Variant = JSON.parse(item);
-        return {
-            ...esItem,
-            esId: String(esItem.id),
-            esModDate: new Date(esItem.updated_at),
-            recType: record.Type.INVENTORY_ITEM,
-        };
-    },
-
-    getNsModDate(nsId: string, rsRecType: string) {
-        return search.create({
-            type: rsRecType,
-            id: nsId,
-            columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })],
-        }).run().getRange(0, 1)[0].getValue("formulatext_modified");
-    },
-
-    shouldReduce(context: EntryPoints.MapReduce.mapContext, esItem: { variants: Record<string, any>[], optionFieldMap: Record<string, any>, nsId: string; }) {
-        esItem.variants?.map((value, index) => esItem.nsId && context.write(String(index), {
-            ...value,
-            productNsId: esItem.nsId,
-            optionFieldMap: esItem.optionFieldMap
-        }));
-    },
-
-    setParentValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
-        !this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
-    },
-
-    setChildValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
-        this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
-    },
-
-    setParentRawValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, rawValue: string) {
-        !this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
-    },
-
-    setChildRawValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, rawValue: string) {
-        this.esRecord.productNsId && this.nsRecord.setValue(nsField, rawValue);
-    },
-
-    setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, arrField: string, esField: string, esValueField: string) {
-        if (this.esRecord.productNsId) return;
-        // when you don't know ns field
-        const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_OPTIONLIST, ITEM_IMPORT_OPTIONFIELD } = EXTERNAL_STORES_CONFIG.KEYS;
-        const options: string[] = [];
-        searchRecords((function (this: typeof options, result: search.Result) {
-            const name = result.getValue(result.columns[0].name) as string;
-            this.push(name);
-        }).bind(options), this.esConfig[ITEM_IMPORT_OPTIONLIST], [], ["name"]);
-
-        const fieldMap: Record<string, string> = {};
-        (this.esConfig[ITEM_IMPORT_FIELDMAP] || []).map((value: string) => {
-            const values = value.split(/\s+/);
-            fieldMap[values[0]] = values[1];
-        });
-        const arr: [] = getProperty(this.esRecord, arrField);
-        this.esRecord.optionFieldMap = {};
-        arr.map((obj: any, index: number) => {
-            const nsField: string = fieldMap[getProperty(obj, esField)] || this.esConfig[ITEM_IMPORT_OPTIONFIELD] + (index + 1);
-            this.esRecord.optionFieldMap[`option${index + 1}`] = nsField;
-            const values = getProperty(obj, esValueField);
-            values.map((value: string) => {
-                if (!options.includes(String(value))) {
-                    record.create({ type: this.esConfig[ITEM_IMPORT_OPTIONLIST], isDynamic: true })
-                        .setValue("name", value)
-                        .setValue("abbreviation", value.substring(0, 15))
-                        .save();
-                }
-            });
-            this.nsRecord.setText(nsField, values);
-        });
-    },
-
-    setChildMatrixOptions(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }) {
-        if (!this.esRecord.productNsId) return;
-        for (const [esField, nsField] of Object.entries(this.esRecord.optionFieldMap)) {
-            this.nsRecord.setText("matrixoption" + nsField as string, this.esRecord[esField]);
-        }
-    },
-
-    reduce(context: EntryPoints.MapReduce.reduceContext) {
-        context.values.map(value => {
-            const esItem = ITEM_IMPORT.parseRecord(value);
-            getPermission().process(ITEM_IMPORT, esItem);
-        });
     }
 
 };

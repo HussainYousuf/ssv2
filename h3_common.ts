@@ -8,9 +8,26 @@ import * as shopifyWrapper from "./h3_shopify_wrapper";
 import * as salesforceWrapper from "./h3_salesforce_wrapper";
 import * as itemImport from "./h3_item_import";
 import * as itemExport from "./h3_item_export";
+import * as baseImport from "./h3_import";
+import * as baseExport from "./h3_export";
 
-const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+
+const { EXTERNAL_STORES_CONFIG, RECORDS_SYNC } = constants.RECORDS;
 const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
+
+export function init() {
+    const { store, permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+    const esConfig: Record<string, any> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
+    const [rsRecType, rsStatus] = permission.split("_");
+    const filters = [
+        [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
+        "AND",
+        [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, rsRecType],
+        "AND",
+        [RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, rsStatus],
+    ];
+    return { store, permission, rsRecType, rsStatus, filters, esConfig };
+}
 
 // serializes date obj to yyyy-mm-dd hh24:mi:ss
 export function getFormattedDateTime(dateObj: Date) {
@@ -55,12 +72,12 @@ export function scheduleScript(storePermissions: { store: string, permission: st
 
 function getEsConfig(store: string, permission: string) {
     const esConfig = {};
-    const { ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION, TYPE, ITEM_EXPORT_FUNCTION } = EXTERNAL_STORES_CONFIG.KEYS;
+    const { _FIELDMAP, _FUNCTIONS, TYPE } = EXTERNAL_STORES_CONFIG.KEYS;
     function callback(this: any, result: search.Result) {
         const key = (result.getValue(result.columns[0].name) as string).trim();
         const value = (result.getValue(result.columns[1].name) as string).split("\n").map(value => value.trim()).filter(value => value);
         if (value.length) {
-            if ([ITEM_IMPORT_FIELDMAP, ITEM_IMPORT_FUNCTION, ITEM_EXPORT_FUNCTION].includes(key))
+            if ([_FIELDMAP, _FUNCTIONS].map(i => permission + i).includes(key))
                 this[key] = value;
             else
                 this[key] = value[0];
@@ -73,7 +90,7 @@ function getEsConfig(store: string, permission: string) {
             [EXTERNAL_STORES_CONFIG.FIELDS.STORE, search.Operator.IS, store],
             "AND",
             [
-                [EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.STARTSWITH, permission.toLowerCase()],
+                [EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.STARTSWITH, permission],
                 "OR",
                 [EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, TYPE]
             ]
@@ -89,8 +106,8 @@ function getEsConfig(store: string, permission: string) {
 
 export function getWrapper(): any {
     function getWrapper(): any {
-        const type = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string)[EXTERNAL_STORES_CONFIG.KEYS.TYPE];
-        switch (type) {
+        const type: string = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string)[EXTERNAL_STORES_CONFIG.KEYS.TYPE];
+        switch (type.toUpperCase()) {
             case EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
                 return shopifyWrapper;
             case EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
@@ -99,19 +116,33 @@ export function getWrapper(): any {
                 throw Error(`common.getWrapper => unknown type ${type}`);
         }
     }
-    const { permission } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
-    return getWrapper()[permission];
+    const { permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+    return getWrapper()[permission.toUpperCase()];
 }
 
-export function getPermission() {
-    const { permission } = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
-    switch (permission) {
-        case EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_IMPORT:
-            return itemImport;
-        case EXTERNAL_STORES_CONFIG.PERMISSIONS.ITEM_EXPORT:
-            return itemExport;
+export function getRecord() {
+    const { permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+    const [record, operation] = permission.split("_");
+    switch (record.toUpperCase()) {
+        case EXTERNAL_STORES_CONFIG.RECORDS.ITEM:
+            return item[operation];
+        case EXTERNAL_STORES_CONFIG.RECORDS.CUSTOMER:
+            return customer[operation];
         default:
             throw Error(`common.getPermission => unknown permission ${permission}`);
+    }
+}
+
+export function getOperation() {
+    const { permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+    const operation = permission.split("_")[1];
+    switch (operation.toUpperCase()) {
+        case EXTERNAL_STORES_CONFIG.OPERATIONS.IMPORT:
+            return baseImport;
+        case EXTERNAL_STORES_CONFIG.OPERATIONS.EXPORT:
+            return baseExport;
+        default:
+            throw Error(`common.getPermission => unknown operation ${operation}`);
     }
 }
 
