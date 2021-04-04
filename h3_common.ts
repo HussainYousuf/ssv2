@@ -106,19 +106,15 @@ function getEsConfig(store: string, permission: string) {
 
 export function getWrapper(): any {
     const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
-    function getWrapper(): any {
-        const type: string = esConfig[EXTERNAL_STORES_CONFIG.KEYS.TYPE];
-        switch (type.toUpperCase()) {
-            case EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
-                return shopifyWrapper;
-            case EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
-                return salesforceWrapper;
-            default:
-                throw Error(`common.getWrapper => unknown type ${type}`);
-        }
+    const { permission, [EXTERNAL_STORES_CONFIG.KEYS.TYPE]: type }: Record<string, string> = esConfig;
+    switch (type.toUpperCase()) {
+        case EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
+            return (shopifyWrapper as any)[permission.toUpperCase()];
+        case EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
+            return (salesforceWrapper as any)[permission.toUpperCase()];
+        default:
+            throw Error(`common.getWrapper => unknown type ${type}`);
     }
-    const { permission }: Record<string, string> = esConfig
-    return getWrapper()[permission.toUpperCase()];
 }
 
 export function getRecord() {
@@ -126,9 +122,9 @@ export function getRecord() {
     const [record, operation] = permission.split("_");
     switch (record.toUpperCase()) {
         case EXTERNAL_STORES_CONFIG.RECORDS.ITEM:
-            return item[operation];
+            return (item as any)[operation];
         case EXTERNAL_STORES_CONFIG.RECORDS.CUSTOMER:
-            return customer[operation];
+            return (customer as any)[operation];
         default:
             throw Error(`common.getPermission => unknown permission ${permission}`);
     }

@@ -3,14 +3,12 @@ import search from 'N/search';
 import log from 'N/log';
 import https from 'N/https';
 import record from "N/record";
-import runtime from "N/runtime";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
 import { getFormattedDateTime, getProperty, functions, searchRecords, getOperation, init } from './h3_common';
 import { Shopify } from "./h3_types";
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
-const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
 
 function parseResponse(response: https.ClientResponse) {
     try {

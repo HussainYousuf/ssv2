@@ -1,3 +1,11 @@
+import search from 'N/search';
+import constants from './h3_constants';
+import format from 'N/format';
+import { getFormattedDateTime } from './h3_common';
+
+
+const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+
 export const IMPORT = {
 
     getNsModDate(nsId: string, rsRecType: string) {
@@ -12,8 +20,9 @@ export const IMPORT = {
 
 export const EXPORT = {
 
-    getRecords(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>, permission: string) {
+    getRecords(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>) {
 
+        const { permission } = esConfig;
         const { filterExpression: filters, columns } = search.load({
             id: esConfig[permission + EXTERNAL_STORES_CONFIG.KEYS._SEARCHID]
         });
