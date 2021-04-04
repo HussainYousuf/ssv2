@@ -82,7 +82,7 @@ export function process(wrapper: any, esRecord: any) {
             record.load({ type: recType, id: nsId, isDynamic: true }) :
             record.create({ type: recType, isDynamic: true });
 
-        for (const value of esConfig[`${permission}_${EXTERNAL_STORES_CONFIG.KEYS.FUNCTIONS}`] as string[]) {
+        for (const value of esConfig[permission + EXTERNAL_STORES_CONFIG.KEYS._FUNCTIONS] as string[]) {
             const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
@@ -94,7 +94,7 @@ export function process(wrapper: any, esRecord: any) {
             ignoreMandatoryFields: true
         }));
 
-        const formulatext_modified = wrapper.getNsModDate(nsId, rsRecType)
+        const formulatext_modified = wrapper.getNsModDate(nsId, rsRecType);
 
         const nsModDate = format.format({
             value: new Date((formulatext_modified as string).replace(" ", "T") + "Z"),

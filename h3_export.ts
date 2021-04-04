@@ -41,10 +41,24 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     }).run().getRange(0, 1)[0]?.getValue(maxNsModDateCol) as string;
 
     if (maxNsModDate) maxNsModDate = format.parse({ type: format.Type.DATETIMETZ, value: maxNsModDate }) as Date;
-
     log.debug("export.getInputData => maxNsModDate", maxNsModDate);
 
     return wrapper.getRecords(maxNsModDate, esConfig);
+}
+
+export function map(context: EntryPoints.MapReduce.mapContext) {
+    const wrapper = getWrapper();
+    const nsSearch = wrapper.parseSearch(context.value);
+    process(wrapper, nsSearch);
+    wrapper.shouldReduce?.(context, nsSearch);
+}
+
+export function reduce(context: EntryPoints.MapReduce.reduceContext) {
+    throw Error();
+}
+
+export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
+    throw Error();
 }
 
 export function process(wrapper: Record<string, any>, nsSearch: Record<string, any>) {
@@ -87,7 +101,7 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
             esConfig
         });
 
-        for (const value of esConfig[`${permission}_${EXTERNAL_STORES_CONFIG.KEYS.FUNCTIONS}`] as string[]) {
+        for (const value of esConfig[permission + EXTERNAL_STORES_CONFIG.KEYS._FUNCTIONS] as string[]) {
             const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
@@ -133,19 +147,4 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
         ignoreMandatoryFields: true
     });
 
-}
-
-export function map(context: EntryPoints.MapReduce.mapContext) {
-    const wrapper = getWrapper();
-    const nsSearch = wrapper.parseSearch(context.value);
-    process(wrapper, nsSearch);
-    wrapper.shouldReduce?.(context, nsSearch);
-}
-
-export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    throw Error();
-}
-
-export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    throw Error();
 }

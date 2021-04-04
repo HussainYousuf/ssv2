@@ -25,8 +25,8 @@ function parseResponse(response: https.ClientResponse) {
 
 export const ITEM_EXPORT = {
 
-    getItems(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>) {
-        const { ITEM_EXPORT_SEARCHID, ITEM_EXPORT_LIMIT } = EXTERNAL_STORES_CONFIG.KEYS;
+    getRecords(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>) {
+        const { ITEM_EXPORT_SEARCHID } = EXTERNAL_STORES_CONFIG.KEYS;
 
         const { filterExpression: filters, columns } = search.load({
             id: esConfig[ITEM_EXPORT_SEARCHID]
@@ -51,10 +51,10 @@ export const ITEM_EXPORT = {
             type: search.Type.ITEM,
             filters,
             columns
-        }).run().getRange(0, Number(esConfig[ITEM_EXPORT_LIMIT]) || 1000);
+        });
     },
 
-    parseItem(item: string) {
+    parseRecord(item: string) {
         const nsItem = JSON.parse(item);
         const { formulatext_modified, formulatext_lastquantityavailablechange } = nsItem.values;
         const modified = new Date((formulatext_modified as string).replace(" ", "T") + "Z");
@@ -235,17 +235,17 @@ export const ITEM_EXPORT = {
 
 export const ITEM_IMPORT = {
 
-    getItems(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
+    getRecords(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
         const { ITEM_IMPORT_GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
         const response = parseResponse(https.get({
             url: maxEsModDate ? esConfig[ITEM_IMPORT_GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[ITEM_IMPORT_GETURL],
         }));
 
-        log.debug("shopify_wrapper.getItems => response", response);
+        log.debug("shopify_wrapper.getRecords => response", response);
         return JSON.parse(response).products;
     },
 
-    parseItem(item: string) {
+    parseRecord(item: string) {
         const esItem: Shopify.Product | Shopify.Variant = JSON.parse(item);
         return {
             ...esItem,
@@ -305,7 +305,7 @@ export const ITEM_IMPORT = {
         const arr: [] = getProperty(this.esRecord, arrField);
         this.esRecord.optionFieldMap = {};
         arr.map((obj: any, index: number) => {
-            const nsField: string = fieldMap[getProperty(obj, esField)] || this.esConfig[ITEM_IMPORT_OPTIONFIELD] + index;
+            const nsField: string = fieldMap[getProperty(obj, esField)] || this.esConfig[ITEM_IMPORT_OPTIONFIELD] + (index + 1);
             this.esRecord.optionFieldMap[`option${index + 1}`] = nsField;
             const values = getProperty(obj, esValueField);
             values.map((value: string) => {
@@ -329,7 +329,7 @@ export const ITEM_IMPORT = {
 
     reduce(context: EntryPoints.MapReduce.reduceContext) {
         context.values.map(value => {
-            const esItem = ITEM_IMPORT.parseItem(value);
+            const esItem = ITEM_IMPORT.parseRecord(value);
             getPermission().process(ITEM_IMPORT, esItem);
         });
     }
