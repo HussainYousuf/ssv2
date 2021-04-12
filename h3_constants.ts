@@ -61,18 +61,18 @@ export default {
                 _SORTEDOPTIONS: "_sortedoptions",
             },
             RECORDS: {
-                CUSTOMER: "CUSTOMER",
-                ITEM: "ITEM",
-                SALESORDER: "SALESORDER",
+                CUSTOMER: "customer",
+                ITEM: "item",
+                SALESORDER: "salesorder",
             },
             TYPES: {
-                SHOPIFY: "SHOPIFY",
-                SALESFORCE: "SALESFORCE",
-                MAGENTO2: "MAGENTO2"
+                SHOPIFY: "shopify",
+                SALESFORCE: "salesforce",
+                MAGENTO2: "magento2"
             },
             OPERATIONS: {
-                IMPORT: "IMPORT",
-                EXPORT: "EXPORT"
+                IMPORT: "import",
+                EXPORT: "export"
             }
         }
     }

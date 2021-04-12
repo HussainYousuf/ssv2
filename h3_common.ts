@@ -18,7 +18,8 @@ const { BASE_MR_ESCONFIG, BASE_MR_STORE_PERMISSIONS } = constants.SCRIPT_PARAMS;
 export function init() {
     const esConfig: Record<string, any> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
     const { store, permission }: Record<string, string> = esConfig;
-    const [rsRecType, rsStatus] = permission.split("_");
+    const [rsRecType, operation] = permission.split("_");
+    const rsStatus = operation + "ed";
     const filters = [
         [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
         "AND",
@@ -82,20 +83,19 @@ export function scheduleScript(storePermissions: { store: string, permission: st
 }
 
 function getEsConfig(store: string, permission: string) {
-    const esConfig = { store, permission };
-    const { _FIELDMAP, _FUNCTIONS, TYPE } = EXTERNAL_STORES_CONFIG.KEYS;
-    function callback(this: any, result: search.Result) {
-        const key = (result.getValue(result.columns[0].name) as string).trim();
-        const value = (result.getValue(result.columns[1].name) as string).split("\n").map(value => value.trim()).filter(value => value);
-        if (value.length) {
-            if ([_FIELDMAP, _FUNCTIONS].map(i => permission + i).includes(key))
-                this[key] = value;
-            else
-                this[key] = value[0];
-        }
-    }
+    const esConfig: Record<string, string | string[]> = { store, permission };
+    const { TYPE } = EXTERNAL_STORES_CONFIG.KEYS;
     searchRecords(
-        callback.bind(esConfig),
+        (function (result: search.Result) {
+            const key = String(result.getValue(result.columns[0].name)).trim();
+            const value = String(result.getValue(result.columns[1].name)).split("\n").map(value => value.trim()).filter(value => value);
+            if (value.length) {
+                if (value.length > 1)
+                    esConfig[key] = value;
+                else
+                    esConfig[key] = value[0];
+            }
+        }),
         EXTERNAL_STORES_CONFIG.ID,
         [
             [EXTERNAL_STORES_CONFIG.FIELDS.STORE, search.Operator.IS, store],
@@ -112,13 +112,13 @@ function getEsConfig(store: string, permission: string) {
         ]
     );
     log.debug("common.getEsConfig => esConfig", esConfig);
-    return esConfig as Record<string, string | string[]>;
+    return esConfig;
 }
 
 export function getWrapper(): any {
     const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
     const { permission, [EXTERNAL_STORES_CONFIG.KEYS.TYPE]: type }: Record<string, string> = esConfig;
-    switch (type.toUpperCase()) {
+    switch (type) {
         case EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
             return (shopifyWrapper as any)[permission.toUpperCase()];
         case EXTERNAL_STORES_CONFIG.TYPES.SALESFORCE:
@@ -129,22 +129,22 @@ export function getWrapper(): any {
 }
 
 export function getRecord() {
-    const { permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+    const { permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
     const [record, operation] = permission.split("_");
-    switch (record.toUpperCase()) {
+    switch (record) {
         case EXTERNAL_STORES_CONFIG.RECORDS.ITEM:
-            return (item as any)[operation];
+            return (item as any)[operation.toUpperCase()];
         case EXTERNAL_STORES_CONFIG.RECORDS.CUSTOMER:
-            return (customer as any)[operation];
+            return (customer as any)[operation.toUpperCase()];
         default:
             throw Error(`common.getPermission => unknown permission ${permission}`);
     }
 }
 
 export function getOperation() {
-    const { permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_STORE_PERMISSIONS) as string)[0];
+    const { permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
     const operation = permission.split("_")[1];
-    switch (operation.toUpperCase()) {
+    switch (operation) {
         case EXTERNAL_STORES_CONFIG.OPERATIONS.IMPORT:
             return baseImport;
         case EXTERNAL_STORES_CONFIG.OPERATIONS.EXPORT:

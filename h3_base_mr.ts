@@ -37,13 +37,13 @@ function init() {
     const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
     const storePermissions: { store: string, permission: string; }[] = [];
-    function callback(this: typeof storePermissions, result: search.Result) {
-        const store = result.getValue(result.columns[0].name) as string;
-        const permissions = decrypt(result.getValue(result.columns[1].name) as string);
-        permissions.map(permission => this.push({ store, permission }));
-    }
+
     searchRecords(
-        callback.bind(storePermissions),
+        (function (result: search.Result) {
+            const store = result.getValue(result.columns[0].name) as string;
+            const permissions = decrypt(result.getValue(result.columns[1].name) as string);
+            permissions.map(permission => storePermissions.push({ store, permission }));
+        }),
         EXTERNAL_STORES_CONFIG.ID,
         [EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, EXTERNAL_STORES_CONFIG.KEYS.KEY],
         [EXTERNAL_STORES_CONFIG.FIELDS.STORE, EXTERNAL_STORES_CONFIG.FIELDS.VALUE]

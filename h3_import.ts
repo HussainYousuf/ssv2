@@ -3,13 +3,17 @@ import record from 'N/record';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, functions, init } from './h3_common';
+import { getWrapper, functions, init, getFailedRecords } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
+export function getRecords(maxEsModDate: string, store: string, esType: string, recType: string) {
+
+}
+
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const { filters, esConfig } = init();
+    const { store, rsRecType, filters, esConfig } = init();
 
     const maxEsModDateCol = search.createColumn({
         name: RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE,
@@ -26,7 +30,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
     log.debug("import.getInputData => maxEsModDate", maxEsModDate);
 
-    return getWrapper().getRecords(maxEsModDate, esConfig);
+    return getRecords(maxEsModDate, store, esConfig.type, rsRecType);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
