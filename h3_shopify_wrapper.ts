@@ -16,8 +16,7 @@ function parseResponse(response: https.ClientResponse) {
         if (result.errors) throw Error();
         else return result;
     } catch (error) {
-        error = Error(response.code + " " + response.body);
-        throw Error(error);
+        throw Error(response.code + " " + response.body);
     }
 }
 
@@ -34,8 +33,10 @@ function getRecords(maxEsModDate: string | undefined, esConfig: Record<string, a
     }
     else {
         // failed records sync
-        getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID);
+        const ids = getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID).join();
+
     }
+
     return response;
 }
 
