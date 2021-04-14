@@ -3,7 +3,7 @@ import record from 'N/record';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, functions, init, getFailedRecords } from './h3_common';
+import { getWrapper, functions, init, getFailedRecords, getRecordType } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -32,7 +32,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 export function map(context: EntryPoints.MapReduce.mapContext) {
     const wrapper = getWrapper();
     const esRecord = wrapper.parseRecord(context.value);
-    process(wrapper, esRecord);
+    process(esRecord);
     wrapper.shouldReduce?.(context, esRecord);
 }
 
@@ -44,7 +44,9 @@ export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
     throw Error();
 }
 
-export function process(wrapper: any, esRecord: any) {
+export function process(esRecord: any) {
+
+    const recordType = getRecordType();
 
     log.debug("process => esRecord", esRecord);
 
@@ -83,7 +85,7 @@ export function process(wrapper: any, esRecord: any) {
             const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
-            const _function = wrapper[functionName] || functions[functionName];
+            const _function = recordType[functionName] || functions[functionName];
             _function && _function.apply({ nsRecord, esRecord, esConfig }, args);
         }
 
@@ -91,7 +93,7 @@ export function process(wrapper: any, esRecord: any) {
             ignoreMandatoryFields: true
         }));
 
-        const formulatext_modified = wrapper.getNsModDate(nsId, rsRecType);
+        const formulatext_modified = recordType.getNsModDate(nsId, rsRecType);
 
         const nsModDate = format.format({
             value: new Date((formulatext_modified as string).replace(" ", "T") + "Z"),
