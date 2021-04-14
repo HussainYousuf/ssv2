@@ -3,7 +3,7 @@ import record from 'N/record';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, functions, init, getRecord } from './h3_common';
+import { getWrapper, functions, init, getRecordType } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -25,7 +25,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     if (maxNsModDate) maxNsModDate = format.parse({ type: format.Type.DATETIMETZ, value: maxNsModDate }) as Date;
     log.debug("export.getInputData => maxNsModDate", maxNsModDate);
 
-    return getRecord().getRecords(maxNsModDate, esConfig);
+    return getRecordType().getRecords(maxNsModDate, esConfig);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {

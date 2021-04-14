@@ -20,32 +20,34 @@ function parseResponse(response: https.ClientResponse) {
     }
 }
 
-function getRecords(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
-    const { permission } = esConfig;
+function getRecords(maxEsModDate: string | undefined) {
+    const { permission, esConfig, filters } = init();
     const { _GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
+
     let response = parseResponse(https.get({
         url: maxEsModDate ? esConfig[permission + _GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[permission + _GETURL],
     }));
-    log.debug("shopify_wrapper.getRecords => response", response);
     response = JSON.parse(response);
-    if (Object.values(response as Record<string, any>)[0].length) {
-        //reschedule script
-    }
-    else {
-        // failed records sync
-        const ids = getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID).join();
 
+    const records = Object.values(response as Record<string, any>)[0];
+    const ids = getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID, filters).join();
+
+    if (ids) {
+        response = parseResponse(https.get({
+            url: esConfig[permission + _GETURL] + `&ids=${ids}`,
+        }));
+        response = JSON.parse(response);
+        records.push(...Object.values(response as Record<string, any>)[0]);
     }
 
-    return response;
+    log.debug("shopify_wrapper.getRecords => records", records);
+
+    return records;
 }
 
 export const ITEM_IMPORT = {
 
-    getRecords(maxEsModDate: string | undefined, esConfig: Record<string, any>) {
-        const { products } = getRecords(maxEsModDate, esConfig);
-
-    },
+    getRecords,
 
     parseRecord(_record: string) {
         const esRecord: Shopify.Product | Shopify.Variant = JSON.parse(_record);

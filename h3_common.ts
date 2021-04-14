@@ -30,8 +30,7 @@ export function init() {
     return { store, permission, rsRecType, rsStatus, filters, esConfig };
 }
 
-export function getFailedRecords(column: string) {
-    const { filters } = init();
+export function getFailedRecords(column: string, filters: any[]) {
     filters.pop();
     filters.push([RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, ""]);
     const failedRecords: string[] = [];
@@ -116,8 +115,7 @@ function getEsConfig(store: string, permission: string) {
 }
 
 export function getWrapper(): any {
-    const esConfig = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
-    const { permission, [EXTERNAL_STORES_CONFIG.KEYS.TYPE]: type }: Record<string, string> = esConfig;
+    const { permission, [EXTERNAL_STORES_CONFIG.KEYS.TYPE]: type }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
     switch (type) {
         case EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
             return (shopifyWrapper as any)[permission.toUpperCase()];
@@ -128,7 +126,7 @@ export function getWrapper(): any {
     }
 }
 
-export function getRecord() {
+export function getRecordType() {
     const { permission }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
     const [record, operation] = permission.split("_");
     switch (record) {
