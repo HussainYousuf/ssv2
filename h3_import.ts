@@ -16,13 +16,13 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
         summary: search.Summary.MAX,
     });
 
-    let maxEsModDate = search.create({
+    let maxEsModDate: string | Date = search.create({
         type: constants.RECORDS.RECORDS_SYNC.ID,
         filters,
         columns: [maxEsModDateCol]
     }).run().getRange(0, 1)[0]?.getValue(maxEsModDateCol) as string;
 
-    if (maxEsModDate) maxEsModDate = (format.parse({ type: format.Type.DATETIMETZ, value: maxEsModDate }) as Date).toISOString();
+    if (maxEsModDate) maxEsModDate = (format.parse({ type: format.Type.DATETIMETZ, value: maxEsModDate }) as Date);
 
     log.debug("import.getInputData => maxEsModDate", maxEsModDate);
 

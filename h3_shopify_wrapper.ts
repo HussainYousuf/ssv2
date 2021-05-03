@@ -22,20 +22,35 @@ function parseResponse(response: https.ClientResponse) {
     }
 }
 
-function getRecords(maxEsModDate: string | undefined) {
+function getRecords(maxEsModDate: Date | undefined) {
     const { permission, esConfig, filters } = init();
     const { _GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
+    const url =  maxEsModDate ? esConfig[permission + _GETURL] + `&updated_at_min=${maxEsModDate.toISOString()}` : esConfig[permission + _GETURL];
+    const records = [];
+    let since_id = "&since_id=0";
 
-    let response = parseResponse(https.get({
-        url: maxEsModDate ? esConfig[permission + _GETURL] + `&updated_at_min=${maxEsModDate}` : esConfig[permission + _GETURL],
-    }));
-    response = JSON.parse(response);
+    while (records.length <= 10000){
+        let response = parseResponse(https.get({
+            url: url + since_id
+        }));
+        response = JSON.parse(response);
+        const tempRecords = Object.values(response as Record<string, any>)[0];
+        if(tempRecords.length){
+            records.push(...tempRecords);
+            since_id = `&since_id=${records[records.length - 1].id}`;
+        }else {
+            since_id = "";
+            break;
+        }
+    }
 
-    const records = Object.values(response as Record<string, any>)[0];
+    if(since_id) {
+        // reschedule and pass since_id as well
+    }
+
     const ids = getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID, filters).join();
-
     if (ids) {
-        response = parseResponse(https.get({
+        let response = parseResponse(https.get({
             url: esConfig[permission + _GETURL] + `&ids=${ids}`,
         }));
         response = JSON.parse(response);
@@ -43,7 +58,6 @@ function getRecords(maxEsModDate: string | undefined) {
     }
 
     log.debug("shopify_wrapper.getRecords => records", records);
-
     return records;
 }
 
