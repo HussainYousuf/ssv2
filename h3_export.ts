@@ -3,7 +3,7 @@ import record from 'N/record';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, functions, init, getRecordType } from './h3_common';
+import { getWrapper, init, getRecordType } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -25,7 +25,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     if (maxNsModDate) maxNsModDate = format.parse({ type: format.Type.DATETIMETZ, value: maxNsModDate }) as Date;
     log.debug("export.getInputData => maxNsModDate", maxNsModDate);
 
-    return getRecordType().getRecords(maxNsModDate, esConfig);
+    return getWrapper().getRecords(maxNsModDate, esConfig);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
@@ -43,7 +43,32 @@ export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
     throw Error();
 }
 
+export const functions: any = {
+
+    setValue(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+        for (const nsField of nsFields.split("|")) {
+            const value = this.nsRecord.record.getValue(nsField);
+            if (value) {
+                this.esRecord[esField] = value;
+                break;
+            }
+        }
+    },
+
+    setText(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+        for (const nsField of nsFields.split("|")) {
+            const value = this.nsRecord.record.getText(nsField);
+            if (value) {
+                this.esRecord[esField] = value;
+                break;
+            }
+        }
+    },
+};
+
 export function process(wrapper: Record<string, any>, nsSearch: Record<string, any>) {
+
+    const recordType = getRecordType();
 
     log.debug("process => nsSearch", nsSearch);
 
@@ -87,7 +112,7 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
             const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
-            const _function = wrapper[functionName] || functions[functionName];
+            const _function = wrapper[functionName] || recordType[functionName] || functions[functionName];
             _function && _function.apply({
                 nsRecord: { record: nsRecord, search: nsSearch },
                 esRecord,

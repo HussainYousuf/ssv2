@@ -158,35 +158,3 @@ export function getProperty(object: any, property: string) {
     }
     return object;
 }
-
-export const functions: any = {
-    setValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esFields: string) {
-        for (const esField of esFields.split("|")) {
-            const value = getProperty(this.esRecord, esField);
-            if (value) {
-                this.nsRecord.setValue(nsField, value);
-                break;
-            }
-        }
-    },
-
-    setRecordValue(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
-        for (const nsField of nsFields.split("|")) {
-            const value = this.nsRecord.record.getValue(nsField);
-            if (value) {
-                this.esRecord[esField] = value;
-                break;
-            }
-        }
-    },
-
-    setRecordText(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
-        for (const nsField of nsFields.split("|")) {
-            const value = this.nsRecord.record.getText(nsField);
-            if (value) {
-                this.esRecord[esField] = value;
-                break;
-            }
-        }
-    },
-};

@@ -5,10 +5,12 @@ import https from 'N/https';
 import record from "N/record";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, functions, searchRecords, getOperation, init, getFailedRecords } from './h3_common';
+import { getFormattedDateTime, getProperty, searchRecords, getOperation, init, getFailedRecords } from './h3_common';
 import { Shopify } from "./h3_types";
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+
+const operationFunctions = getOperation().functions;
 
 function parseResponse(response: https.ClientResponse) {
     try {
@@ -68,11 +70,11 @@ export const ITEM_IMPORT = {
     },
 
     setParentValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
-        !this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
+        !this.esRecord.productNsId && operationFunctions.setValue.call(this, nsField, esField);
     },
 
     setChildValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
-        this.esRecord.productNsId && functions.setValue.call(this, nsField, esField);
+        this.esRecord.productNsId && operationFunctions.setValue.call(this, nsField, esField);
     },
 
     setParentRawValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, rawValue: string) {
@@ -146,7 +148,7 @@ export const ITEM_EXPORT = {
         if (this.nsRecord.search.isParent) {
             if (this.esRecord.product) {
                 this.esRecord = this.esRecord.product;
-                functions.setRecordValue.call(this, esField, nsFields);
+                operationFunctions.setValue.call(this, esField, nsFields);
             } else {
                 this.esRecord.product = {};
                 ITEM_EXPORT.setProductValue.call(this, esField, nsFields);
@@ -158,7 +160,7 @@ export const ITEM_EXPORT = {
         if (this.nsRecord.search.isChild) {
             if (this.esRecord.variant) {
                 this.esRecord = this.esRecord.variant;
-                functions.setRecordValue.call(this, esField, nsFields);
+                operationFunctions.setValue.call(this, esField, nsFields);
             } else {
                 this.esRecord.variant = {};
                 ITEM_EXPORT.setVariantValue.call(this, esField, nsFields);
@@ -166,7 +168,7 @@ export const ITEM_EXPORT = {
         }
     },
 
-    putItem(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esId: string) {
+    putRecord(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esId: string) {
         const { permission } = this.esConfig;
         const { _PUTURL, _PUTURL1 } = EXTERNAL_STORES_CONFIG.KEYS;
         const response: Shopify.SingleProduct & Shopify.SingleVariant = parseResponse(https.put({
@@ -184,7 +186,7 @@ export const ITEM_EXPORT = {
     },
 
     shouldReduce(context: EntryPoints.MapReduce.mapContext, nsItem: Record<string, any>) {
-        nsItem.isMatrix && nsItem.esItem && context.write(String(nsItem.parent), nsItem);
+        nsItem.isMatrix && nsItem.esRecord && context.write(String(nsItem.parent), nsItem);
     },
 
     reduce(context: EntryPoints.MapReduce.reduceContext) {
