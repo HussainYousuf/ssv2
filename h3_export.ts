@@ -45,7 +45,7 @@ export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
 
 export const functions: any = {
 
-    setValue(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+    setValue(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
         for (const nsField of nsFields.split("|")) {
             const value = this.nsRecord.record.getValue(nsField);
             if (value) {
@@ -55,7 +55,7 @@ export const functions: any = {
         }
     },
 
-    setText(this: { nsRecord: { record: record.Record, search: any; }, esRecord: any, esConfig: any; }, esField: string, nsFields: string) {
+    setText(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
         for (const nsField of nsFields.split("|")) {
             const value = this.nsRecord.record.getText(nsField);
             if (value) {
@@ -99,7 +99,7 @@ export const functions: any = {
             ...nsSearch.values,
             nsId: nsSearch.id,
             nsModDate: format.format({ value: maxNsModDate, type: format.Type.DATETIMETZ, timezone: format.Timezone.GMT }),
-            recType: nsSearch.recordType,
+            nsRecType: nsSearch.recordType,
         };
     }
 };
@@ -111,7 +111,7 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
     log.debug("process => nsSearch", nsSearch);
 
     const { store, permission, rsRecType, rsStatus, filters, esConfig } = init();
-    const { nsId, nsModDate, recType } = nsSearch;
+    const { nsId, nsModDate, nsRecType } = nsSearch;
 
     filters.pop();
     filters.push([RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, nsId]);
@@ -138,7 +138,7 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
 
     try {
         const esRecord = {};
-        const nsRecord = record.load({ type: recType, id: nsId, isDynamic: true });
+        const nsRecord = record.load({ type: nsRecType, id: nsId, isDynamic: true });
 
         wrapper.init?.call({
             nsRecord: { record: nsRecord, search: nsSearch },

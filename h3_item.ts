@@ -59,7 +59,7 @@ export const EXPORT = {
             ...nsSearch.values,
             nsId: nsSearch.id,
             nsModDate: format.format({ value: maxNsModDate, type: format.Type.DATETIMETZ, timezone: format.Timezone.GMT }),
-            recType: nsSearch.recordType,
+            nsRecType: nsSearch.recordType,
         };
     },
 

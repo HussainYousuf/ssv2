@@ -45,7 +45,7 @@ export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
 }
 
 export const functions: any = {
-    setValue(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esFields: string) {
+    setValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esFields: string) {
         for (const esField of esFields.split("|")) {
             const value = getProperty(this.esRecord, esField);
             if (value) {
@@ -54,7 +54,7 @@ export const functions: any = {
             }
         }
     },
-    setText(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esFields: string) {
+    setText(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esFields: string) {
         for (const esField of esFields.split("|")) {
             const value = getProperty(this.esRecord, esField);
             if (value) {
@@ -79,7 +79,7 @@ export function process(wrapper: any, esRecord: any) {
     log.debug("process => esRecord", esRecord);
 
     const { store, permission, rsRecType, rsStatus, filters, esConfig } = init();
-    const { esId, esModDate, recType } = esRecord;
+    const { esId, esModDate, nsRecType } = esRecord;
 
     filters.pop();
     filters.push([RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, esId]);
@@ -106,8 +106,8 @@ export function process(wrapper: any, esRecord: any) {
 
     try {
         const nsRecord = nsId ?
-            record.load({ type: recType, id: nsId, isDynamic: true }) :
-            record.create({ type: recType, isDynamic: true });
+            record.load({ type: nsRecType, id: nsId, isDynamic: true }) :
+            record.create({ type: nsRecType, isDynamic: true });
 
         for (const value of esConfig[permission + EXTERNAL_STORES_CONFIG.KEYS._FUNCTIONS] as string[]) {
             const values = value.split(/\s+/);
