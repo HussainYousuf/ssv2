@@ -20,15 +20,15 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
-    return getWrapper().map?.(context) || getRecordType()?.map(context) || getOperation().map(context);
+    return getWrapper().map?.(context) || getRecordType().map?.(context) || getOperation().map(context);
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    return getWrapper().reduce?.(context) || getRecordType()?.reduce(context) || getOperation().reduce(context);
+    return getWrapper().reduce?.(context) || getRecordType().reduce?.(context) || getOperation().reduce(context);
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    return getWrapper().summarize?.(context) || getRecordType()?.summarize(context) || getOperation().summarize(context);
+    return getWrapper().summarize?.(context) || getRecordType().summarize?.(context) || getOperation().summarize(context);
 }
 
 
@@ -49,7 +49,7 @@ function init() {
         [EXTERNAL_STORES_CONFIG.FIELDS.STORE, EXTERNAL_STORES_CONFIG.FIELDS.VALUE]
     );
 
-    scheduleScript((storePermissions));
+    scheduleScript(storePermissions);
 }
 
 function decrypt(text: string): [string] {

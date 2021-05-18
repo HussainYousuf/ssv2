@@ -8,9 +8,9 @@ const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 export const IMPORT = {
 
-    getNsModDate(nsId: string, rsRecType: string) {
+    getNsModDate(nsId: string) {
         return search.create({
-            type: rsRecType,
+            type: search.Type.ITEM,
             id: nsId,
             columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })],
         }).run().getRange(0, 1)[0].getValue("formulatext_modified");

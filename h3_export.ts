@@ -30,7 +30,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
     const wrapper = getWrapper();
-    const nsSearch = wrapper.parseSearch(context.value);
+    const nsSearch = getRecordType().parseRecord(context.value);
     process(wrapper, nsSearch);
     wrapper.shouldReduce?.(context, nsSearch);
 }

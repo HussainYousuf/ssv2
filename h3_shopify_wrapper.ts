@@ -3,9 +3,10 @@ import search from 'N/search';
 import log from 'N/log';
 import https from 'N/https';
 import record from "N/record";
+import runtime from "N/runtime";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, searchRecords, getOperation, init, getFailedRecords } from './h3_common';
+import { getFormattedDateTime, getProperty, searchRecords, scheduleScript, getOperation, init, getFailedRecords } from './h3_common';
 import { Shopify } from "./h3_types";
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -25,27 +26,30 @@ function parseResponse(response: https.ClientResponse) {
 function getRecords(maxEsModDate: Date | undefined) {
     const { permission, esConfig, filters } = init();
     const { _GETURL } = EXTERNAL_STORES_CONFIG.KEYS;
-    const url =  maxEsModDate ? esConfig[permission + _GETURL] + `&updated_at_min=${maxEsModDate.toISOString()}` : esConfig[permission + _GETURL];
+    const url = maxEsModDate ? esConfig[permission + _GETURL] + `&updated_at_min=${maxEsModDate.toISOString()}` : esConfig[permission + _GETURL];
     const records = [];
     let since_id = "&since_id=0";
 
-    while (records.length <= 10000){
+    while (records.length <= 10000) {
         let response = parseResponse(https.get({
             url: url + since_id
         }));
         response = JSON.parse(response);
         const tempRecords = Object.values(response as Record<string, any>)[0];
-        if(tempRecords.length){
+        if (tempRecords.length) {
             records.push(...tempRecords);
             since_id = `&since_id=${records[records.length - 1].id}`;
-        }else {
+        } else {
             since_id = "";
             break;
         }
     }
 
-    if(since_id) {
-        // reschedule and pass since_id as well
+    const storePermissions = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_MR_STORE_PERMISSIONS) as string);
+    if (since_id) {
+        scheduleScript(storePermissions);
+    } else {
+        scheduleScript(storePermissions.slice(1));
     }
 
     const ids = getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID, filters).join();

@@ -54,6 +54,22 @@ export const functions: any = {
             }
         }
     },
+    setText(this: { nsRecord: record.Record, esRecord: any, esConfig: any; }, nsField: string, esFields: string) {
+        for (const esField of esFields.split("|")) {
+            const value = getProperty(this.esRecord, esField);
+            if (value) {
+                this.nsRecord.setText(nsField, value);
+                break;
+            }
+        }
+    },
+    getNsModDate(nsId: string, rsRecType: string) {
+        return search.create({
+            type: rsRecType,
+            id: nsId,
+            columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({lastmodifieddate},'yyyy-mm-dd hh24:mi:ss')" })],
+        }).run().getRange(0, 1)[0].getValue("formulatext_modified");
+    }
 };
 
 export function process(wrapper: any, esRecord: any) {
@@ -105,7 +121,7 @@ export function process(wrapper: any, esRecord: any) {
             ignoreMandatoryFields: true
         }));
 
-        const formulatext_modified = recordType.getNsModDate(nsId, rsRecType);
+        const formulatext_modified = recordType.getNsModDate?.(nsId) || functions.getNsModDate(nsId, rsRecType);
 
         const nsModDate = format.format({
             value: new Date((formulatext_modified as string).replace(" ", "T") + "Z"),
