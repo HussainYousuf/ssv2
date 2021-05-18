@@ -11,7 +11,7 @@ export const IMPORT = {
     getNsModDate(nsId: string) {
         return search.create({
             type: search.Type.ITEM,
-            id: nsId,
+            filters: ["internalid", search.Operator.IS, nsId],
             columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })],
         }).run().getRange(0, 1)[0].getValue("formulatext_modified");
     },
@@ -49,17 +49,17 @@ export const EXPORT = {
         });
     },
 
-    parseRecord(item: string) {
-        const nsItem = JSON.parse(item);
-        const { formulatext_modified, formulatext_lastquantityavailablechange } = nsItem.values;
+    parseRecord(search: string) {
+        const nsSearch = JSON.parse(search);
+        const { formulatext_modified, formulatext_lastquantityavailablechange } = nsSearch.values;
         const modified = new Date((formulatext_modified as string).replace(" ", "T") + "Z");
         const lastquantityavailablechange = formulatext_lastquantityavailablechange ? new Date((formulatext_lastquantityavailablechange as string).replace(" ", "T") + "Z") : new Date(0);
         const maxNsModDate = modified >= lastquantityavailablechange ? modified : lastquantityavailablechange;
         return {
-            ...nsItem.values,
-            nsId: nsItem.id,
+            ...nsSearch.values,
+            nsId: nsSearch.id,
             nsModDate: format.format({ value: maxNsModDate, type: format.Type.DATETIMETZ, timezone: format.Timezone.GMT }),
-            recType: nsItem.recordType,
+            recType: nsSearch.recordType,
         };
     },
 

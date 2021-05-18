@@ -3,13 +3,13 @@ import record from 'N/record';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, init, getRecordType } from './h3_common';
+import { getWrapper, init, getRecordType, getFormattedDateTime } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const { filters, esConfig } = init();
+    const { filters, esConfig, rsRecType } = init();
 
     const maxNsModDateCol = search.createColumn({
         name: RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE,
@@ -25,12 +25,12 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     if (maxNsModDate) maxNsModDate = format.parse({ type: format.Type.DATETIMETZ, value: maxNsModDate }) as Date;
     log.debug("export.getInputData => maxNsModDate", maxNsModDate);
 
-    return getRecordType().getRecords(maxNsModDate, esConfig);
+    return getRecordType().getRecords?.(maxNsModDate, esConfig) || functions.getRecords(maxNsModDate, esConfig, rsRecType);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
     const wrapper = getWrapper();
-    const nsSearch = getRecordType().parseRecord(context.value);
+    const nsSearch = getRecordType().parseRecord?.(context.value) || functions.parseRecord(context.value);
     process(wrapper, nsSearch);
     wrapper.shouldReduce?.(context, nsSearch);
 }
@@ -64,6 +64,44 @@ export const functions: any = {
             }
         }
     },
+
+    getRecords(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>, type: string) {
+
+        const { permission } = esConfig;
+        const { filterExpression: filters, columns } = search.load({
+            id: esConfig[permission + EXTERNAL_STORES_CONFIG.KEYS._SEARCHID]
+        });
+
+        columns.push(
+            search.createColumn({ name: "formulatext_modified", formula: "to_char({lastmodifieddate},'yyyy-mm-dd hh24:mi:ss')" }),
+        );
+
+        if (maxNsModDate) {
+            maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
+            filters.length && filters.push("AND");
+            filters.push([
+                [`formulatext: CASE WHEN to_char({lastmodifieddate},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
+            ]);
+        }
+
+        return search.create({
+            type,
+            filters,
+            columns
+        });
+    },
+
+    parseRecord(search: string) {
+        const nsSearch = JSON.parse(search);
+        const { formulatext_modified } = nsSearch.values;
+        const maxNsModDate = new Date((formulatext_modified as string).replace(" ", "T") + "Z");
+        return {
+            ...nsSearch.values,
+            nsId: nsSearch.id,
+            nsModDate: format.format({ value: maxNsModDate, type: format.Type.DATETIMETZ, timezone: format.Timezone.GMT }),
+            recType: nsSearch.recordType,
+        };
+    }
 };
 
 export function process(wrapper: Record<string, any>, nsSearch: Record<string, any>) {

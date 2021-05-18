@@ -17,7 +17,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     });
 
     let maxEsModDate: string | Date = search.create({
-        type: constants.RECORDS.RECORDS_SYNC.ID,
+        type: RECORDS_SYNC.ID,
         filters,
         columns: [maxEsModDateCol]
     }).run().getRange(0, 1)[0]?.getValue(maxEsModDateCol) as string;
@@ -66,7 +66,7 @@ export const functions: any = {
     getNsModDate(nsId: string, rsRecType: string) {
         return search.create({
             type: rsRecType,
-            id: nsId,
+            filters: ["internalid", search.Operator.IS, nsId],
             columns: [search.createColumn({ name: "formulatext_modified", formula: "to_char({lastmodifieddate},'yyyy-mm-dd hh24:mi:ss')" })],
         }).run().getRange(0, 1)[0].getValue("formulatext_modified");
     }
@@ -85,7 +85,7 @@ export function process(wrapper: any, esRecord: any) {
     filters.push([RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, esId]);
 
     const rsSearch = search.create({
-        type: constants.RECORDS.RECORDS_SYNC.ID,
+        type: RECORDS_SYNC.ID,
         filters,
         columns: [RECORDS_SYNC.FIELDS.NETSUITE_ID, RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE]
     }).run().getRange(0, 1)[0];
@@ -97,8 +97,8 @@ export function process(wrapper: any, esRecord: any) {
     let nsId = rsSearch?.getValue(RECORDS_SYNC.FIELDS.NETSUITE_ID) as string;
 
     const rsRecord = rsId ?
-        record.load({ type: constants.RECORDS.RECORDS_SYNC.ID, id: rsId, isDynamic: true }) :
-        record.create({ type: constants.RECORDS.RECORDS_SYNC.ID, isDynamic: true });
+        record.load({ type: RECORDS_SYNC.ID, id: rsId, isDynamic: true }) :
+        record.create({ type: RECORDS_SYNC.ID, isDynamic: true });
 
     rsRecord.setValue(RECORDS_SYNC.FIELDS.EXTERNAL_STORE, store)
         .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, esId)
