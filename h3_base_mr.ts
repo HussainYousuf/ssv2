@@ -3,6 +3,8 @@
  *@NScriptType MapReduceScript
  */
 
+
+
 import { EntryPoints } from 'N/types';
 import search from 'N/search';
 import constants from './h3_constants';
@@ -13,7 +15,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     const currentScript = runtime.getCurrentScript();
     if (currentScript.deploymentId == constants.SCRIPTS_DEPLOYMENTS.BASE_MR_SCH && !areOtherDeploymentsRunning(currentScript.id, currentScript.deploymentId)) {
         init();
-        throw Error();
+        return;
     }
     else
         return getWrapper().getInputData?.(context) || getRecordType().getInputData?.(context) || getOperation().getInputData(context);

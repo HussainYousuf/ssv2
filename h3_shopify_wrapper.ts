@@ -1,17 +1,15 @@
 import format from 'N/format';
 import search from 'N/search';
-import log from 'N/log';
+import log, { debug } from 'N/log';
 import https from 'N/https';
 import record from "N/record";
 import runtime from "N/runtime";
 import constants from "./h3_constants";
 import { EntryPoints } from 'N/types';
-import { getFormattedDateTime, getProperty, searchRecords, scheduleScript, getOperation, init, getFailedRecords } from './h3_common';
+import { getProperty, searchRecords, scheduleScript, getOperation, init, getFailedRecords } from './h3_common';
 import { Shopify } from "./h3_types";
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
-
-const operationFunctions = getOperation().functions;
 
 function parseResponse(response: https.ClientResponse) {
     try {
@@ -31,10 +29,11 @@ function getRecords(maxEsModDate: Date | undefined) {
     let since_id = "&since_id=0";
 
     while (records.length <= 10000) {
-        let response = parseResponse(https.get({
+        log.debug("url", url + since_id);
+        const response = parseResponse(https.get({
             url: url + since_id
         }));
-        response = JSON.parse(response);
+        log.debug("response", response);
         const tempRecords = Object.values(response as Record<string, any>)[0];
         if (tempRecords.length) {
             records.push(...tempRecords);
@@ -54,10 +53,9 @@ function getRecords(maxEsModDate: Date | undefined) {
 
     const ids = getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID, filters).join();
     if (ids) {
-        let response = parseResponse(https.get({
+        const response = parseResponse(https.get({
             url: esConfig[permission + _GETURL] + `&ids=${ids}`,
         }));
-        response = JSON.parse(response);
         records.push(...Object.values(response as Record<string, any>)[0]);
     }
 
@@ -92,11 +90,11 @@ export const ITEM_IMPORT = {
     },
 
     setParentValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
-        !this.esRecord.productNsId && operationFunctions.setValue.call(this, nsField, esField);
+        !this.esRecord.productNsId && getOperation().functions.setValue.call(this, nsField, esField);
     },
 
     setChildValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
-        this.esRecord.productNsId && operationFunctions.setValue.call(this, nsField, esField);
+        this.esRecord.productNsId && getOperation().functions.setValue.call(this, nsField, esField);
     },
 
     setParentRawValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, rawValue: string) {
@@ -152,7 +150,7 @@ export const ITEM_IMPORT = {
         context.values.map(value => {
             const esItem = ITEM_IMPORT.parseRecord(value);
             getOperation().process(ITEM_IMPORT, esItem);
-        });
+        }); 
     }
 
 };
@@ -170,7 +168,7 @@ export const ITEM_EXPORT = {
         if (this.nsRecord.search.isParent) {
             if (this.esRecord.product) {
                 this.esRecord = this.esRecord.product;
-                operationFunctions.setValue.call(this, esField, nsFields);
+                getOperation().functions.setValue.call(this, esField, nsFields);
             } else {
                 this.esRecord.product = {};
                 ITEM_EXPORT.setProductValue.call(this, esField, nsFields);
@@ -182,7 +180,7 @@ export const ITEM_EXPORT = {
         if (this.nsRecord.search.isChild) {
             if (this.esRecord.variant) {
                 this.esRecord = this.esRecord.variant;
-                operationFunctions.setValue.call(this, esField, nsFields);
+                getOperation().functions.setValue.call(this, esField, nsFields);
             } else {
                 this.esRecord.variant = {};
                 ITEM_EXPORT.setVariantValue.call(this, esField, nsFields);
@@ -270,7 +268,7 @@ export const ITEM_EXPORT = {
                 query.product.variants.map((variant: any) => existingVariantIds.push(variant.id));
                 query.product.variants.push(...values.map(value => value.esItem.variant));
                 query.product.variants.sort(sortFunction(sortedOptions));
-                response = parseResponse(https.post({
+                response = parseResponse(https.put({
                     url: esConfig[permission + _PUTURL] + productEsId + ".json",
                     body: JSON.stringify(query),
                     headers: {
