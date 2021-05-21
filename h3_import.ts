@@ -123,12 +123,15 @@ export function process(wrapper: any, esRecord: any) {
 
         const formulatext_modified = recordType.getNsModDate?.(nsId) || functions.getNsModDate(nsId, rsRecType);
 
-        // parse as date obj
-        const nsModDate = format.format({
-            value: new Date((formulatext_modified as string).replace(" ", "T") + "Z"),
-            type: format.Type.DATETIMETZ,
-            timezone: format.Timezone.GMT
+        const nsModDate = format.parse({
+            value: format.format({
+                value: new Date((formulatext_modified as string).replace(" ", "T") + "Z"),
+                type: format.Type.DATETIMETZ,
+                timezone: format.Timezone.GMT
+            }),
+            type: format.Type.DATETIMETZ
         });
+
 
         rsRecord.setValue(RECORDS_SYNC.FIELDS.NETSUITE_ID, nsId)
             .setValue(RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE, nsModDate)

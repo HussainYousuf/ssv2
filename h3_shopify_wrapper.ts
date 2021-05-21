@@ -29,11 +29,9 @@ function getRecords(maxEsModDate: Date | undefined) {
     let since_id = "&since_id=0";
 
     while (records.length <= 10000) {
-        log.debug("url", url + since_id);
         const response = parseResponse(https.get({
             url: url + since_id
         }));
-        log.debug("response", response);
         const tempRecords = Object.values(response as Record<string, any>)[0];
         if (tempRecords.length) {
             records.push(...tempRecords);
