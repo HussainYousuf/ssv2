@@ -3,15 +3,15 @@ import record from 'N/record';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, init, getRecordType, getFormattedDateTime } from './h3_common';
+import { getWrapper, init, getRecordType, getFormattedDateTime, getMaxDate, upsertMaxDate } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    
-
-    return getRecordType().getRecords?.(maxNsModDate, esConfig) || functions.getRecords(maxNsModDate, esConfig, rsRecType);
+    const { esConfig } = init();
+    const maxDate = getMaxDate(true);
+    return getRecordType().getRecords?.(maxDate, esConfig) || functions.getRecords(maxDate, esConfig);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
@@ -22,8 +22,7 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-
-    return;
+    upsertMaxDate(true);
 }
 
 export const functions = {
@@ -48,10 +47,10 @@ export const functions = {
         }
     },
 
-    getRecords(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>, type: string) {
+    getRecords(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>) {
 
         const { permission } = esConfig;
-        const { filterExpression: filters, columns } = search.load({
+        const { filterExpression: filters, columns, searchType } = search.load({
             id: esConfig[permission + EXTERNAL_STORES_CONFIG.KEYS._SEARCHID]
         });
 
@@ -68,7 +67,7 @@ export const functions = {
         }
 
         return search.create({
-            type,
+            type: searchType,
             filters,
             columns
         });

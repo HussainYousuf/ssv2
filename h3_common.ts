@@ -193,6 +193,7 @@ export function getMaxDate(isExport: boolean) {
 
     if (maxDate) maxDate = format.parse({ type: format.Type.DATETIMETZ, value: maxDate }) as Date;
     log.debug("common.getMaxDate => maxDate", maxDate);
+    return maxDate as Date;
 }
 
 export function upsertMaxDate(isExport: boolean) {
