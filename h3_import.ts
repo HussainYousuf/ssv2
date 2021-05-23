@@ -36,10 +36,6 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
     wrapper.shouldReduce?.(context, esRecord);
 }
 
-export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    return;
-}
-
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
     return;
 }

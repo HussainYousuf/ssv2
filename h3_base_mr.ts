@@ -30,7 +30,7 @@ export function reduce(context: EntryPoints.MapReduce.reduceContext) {
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    (getWrapper().summarize || getRecordType().summarize || getOperation().summarize)?.(context);
+    (getWrapper().summarize || getRecordType().summarize || getOperation().summarize)(context);
 }
 
 

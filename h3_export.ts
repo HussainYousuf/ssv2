@@ -35,15 +35,11 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
     wrapper.shouldReduce?.(context, nsSearch);
 }
 
-export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    return;
-}
-
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
     return;
 }
 
-export const functions: any = {
+export const functions = {
 
     setValue(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
         for (const nsField of nsFields.split("|")) {
@@ -150,7 +146,7 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
             const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
-            const _function = wrapper[functionName] || recordType[functionName] || functions[functionName];
+            const _function = wrapper[functionName] || recordType[functionName] || (functions as any)[functionName];
             _function && _function.apply({
                 nsRecord: { record: nsRecord, search: nsSearch },
                 esRecord,

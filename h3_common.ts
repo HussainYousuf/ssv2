@@ -114,7 +114,7 @@ function getEsConfig(store: string, permission: string) {
     return esConfig;
 }
 
-export function getWrapper(): any {
+export function getWrapper() {
     const { permission, [EXTERNAL_STORES_CONFIG.KEYS.TYPE]: type }: Record<string, string> = JSON.parse(runtime.getCurrentScript().getParameter(BASE_MR_ESCONFIG) as string);
     switch (type) {
         case EXTERNAL_STORES_CONFIG.TYPES.SHOPIFY:
@@ -144,9 +144,9 @@ export function getOperation() {
     const operation = permission.split("_")[1];
     switch (operation) {
         case EXTERNAL_STORES_CONFIG.OPERATIONS.IMPORT:
-            return baseImport;
+            return baseImport as any;
         case EXTERNAL_STORES_CONFIG.OPERATIONS.EXPORT:
-            return baseExport;
+            return baseExport as any;
         default:
             throw Error(`common.getPermission => unknown operation ${operation}`);
     }
