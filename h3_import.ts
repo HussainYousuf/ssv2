@@ -23,7 +23,6 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     }).run().getRange(0, 1)[0]?.getValue(maxEsModDateCol) as string;
 
     if (maxEsModDate) maxEsModDate = (format.parse({ type: format.Type.DATETIMETZ, value: maxEsModDate }) as Date);
-
     log.debug("import.getInputData => maxEsModDate", maxEsModDate);
 
     return getWrapper().getRecords(maxEsModDate);

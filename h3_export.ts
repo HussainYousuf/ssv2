@@ -9,21 +9,7 @@ import format from 'N/format';
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const { filters, esConfig, rsRecType } = init();
-
-    const maxNsModDateCol = search.createColumn({
-        name: RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE,
-        summary: search.Summary.MAX,
-    });
-
-    let maxNsModDate: string | Date = search.create({
-        type: RECORDS_SYNC.ID,
-        filters,
-        columns: [maxNsModDateCol]
-    }).run().getRange(0, 1)[0]?.getValue(maxNsModDateCol) as string;
-
-    if (maxNsModDate) maxNsModDate = format.parse({ type: format.Type.DATETIMETZ, value: maxNsModDate }) as Date;
-    log.debug("export.getInputData => maxNsModDate", maxNsModDate);
+    
 
     return getRecordType().getRecords?.(maxNsModDate, esConfig) || functions.getRecords(maxNsModDate, esConfig, rsRecType);
 }
@@ -36,6 +22,7 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
+
     return;
 }
 

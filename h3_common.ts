@@ -1,3 +1,4 @@
+import format from 'N/format';
 import record from 'N/record';
 import runtime from 'N/runtime';
 import search from 'N/search';
@@ -20,7 +21,7 @@ export function init() {
     const { store, permission }: Record<string, string> = esConfig;
     const [rsRecType, operation] = permission.split("_");
     const rsStatus = operation + "ed";
-    const filters = [
+    const filters: any = [
         [RECORDS_SYNC.FIELDS.EXTERNAL_STORE, search.Operator.IS, store],
         "AND",
         [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, rsRecType],
@@ -157,4 +158,77 @@ export function getProperty(object: any, property: string) {
         object = object?.[key];
     }
     return object;
+}
+
+export function getMaxDate(isExport: boolean) {
+    const { filters, store, rsRecType } = init();
+    filters.pop();
+    filters.push(
+        [
+            [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
+            "OR",
+            [RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
+        ]
+    );
+    const maxColumn = isExport ? RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE : RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE;
+
+    const maxDateSearch = search.create({
+        type: RECORDS_SYNC.ID,
+        filters,
+        columns: [maxColumn]
+    }).run().getRange(0, 1)[0];
+
+    !maxDateSearch && record.create({
+        type: RECORDS_SYNC.ID,
+        isDynamic: true,
+    })
+        .setValue(RECORDS_SYNC.FIELDS.NETSUITE_ID, RECORDS_SYNC.VALUES.MAXDATEID)
+        .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, RECORDS_SYNC.VALUES.MAXDATEID)
+        .setValue(RECORDS_SYNC.FIELDS.RECORD_TYPE, rsRecType)
+        .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_STORE, store)
+        .save({ ignoreMandatoryFields: true });
+
+
+    let maxDate: string | Date = maxDateSearch?.getValue(maxColumn) as string;
+
+    if (maxDate) maxDate = format.parse({ type: format.Type.DATETIMETZ, value: maxDate }) as Date;
+    log.debug("common.getMaxDate => maxDate", maxDate);
+}
+
+export function upsertMaxDate(isExport: boolean) {
+    const { filters } = init();
+
+    const maxColumn = search.createColumn({
+        name: isExport ? RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE : RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE,
+        summary: search.Summary.MAX,
+    });
+
+    let maxDate: string | Date = search.create({
+        type: RECORDS_SYNC.ID,
+        filters,
+        columns: [maxColumn]
+    }).run().getRange(0, 1)[0]?.getValue(maxColumn) as string;
+
+    if (maxDate) maxDate = (format.parse({ type: format.Type.DATETIMETZ, value: maxDate }) as Date);
+    log.debug("common.upsertMaxDate => maxDate", maxDate);
+
+    filters.pop();
+    filters.push(
+        [
+            [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
+            "OR",
+            [RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
+        ]
+    );
+
+    record.submitFields({
+        id: search.create({
+            type: RECORDS_SYNC.ID,
+            filters
+        }).run().getRange(0, 1)[0].id,
+        type: RECORDS_SYNC.ID,
+        values: {
+            [maxColumn.name]: maxDate
+        },
+    });
 }

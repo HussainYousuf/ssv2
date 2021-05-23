@@ -36,7 +36,8 @@ export default {
                 EXTRAS: "custrecord_h3_rs_extras"
             },
             VALUES: {
-                FAILED: "failed"
+                FAILED: "failed",
+                MAXDATEID: "-100"
             }
         },
         EXTERNAL_STORES_CONFIG: {
@@ -75,6 +76,6 @@ export default {
                 EXPORT: "export"
             }
         }
-    }
+    },
 };
 
