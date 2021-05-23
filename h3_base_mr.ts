@@ -15,22 +15,22 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
     const currentScript = runtime.getCurrentScript();
     if (currentScript.deploymentId == constants.SCRIPTS_DEPLOYMENTS.BASE_MR_SCH && !areOtherDeploymentsRunning(currentScript.id, currentScript.deploymentId)) {
         init();
-        return;
     }
-    else
-        return getWrapper().getInputData?.(context) || getRecordType().getInputData?.(context) || getOperation().getInputData(context);
+    else {
+        return (getWrapper().getInputData || getRecordType().getInputData || getOperation().getInputData)(context);
+    }
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
-    return getWrapper().map?.(context) || getRecordType().map?.(context) || getOperation().map(context);
+    (getWrapper().map || getRecordType().map || getOperation().map)(context);
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    return getWrapper().reduce?.(context) || getRecordType().reduce?.(context) || getOperation().reduce(context);
+    (getWrapper().reduce || getRecordType().reduce || getOperation().reduce)?.(context);
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    return getWrapper().summarize?.(context) || getRecordType().summarize?.(context) || getOperation().summarize(context);
+    (getWrapper().summarize || getRecordType().summarize || getOperation().summarize)?.(context);
 }
 
 

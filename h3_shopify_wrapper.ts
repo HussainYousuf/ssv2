@@ -104,10 +104,12 @@ export const ITEM_IMPORT = {
     },
 
     setParentMatrixOptions(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, arrField: string, esField: string, esValueField: string) {
+        // this.esRecord.productNsId is not available in map stage, this function shud be used in map stage
         if (this.esRecord.productNsId) return;
         // when you don't know ns field use field_map
         const { permission } = this.esConfig;
         const { _FIELDMAP, _OPTIONLIST, _OPTIONFIELD } = EXTERNAL_STORES_CONFIG.KEYS;
+        // populating existing options
         const options: string[] = [];
         searchRecords((function (this: typeof options, result: search.Result) {
             const name = result.getValue(result.columns[0].name) as string;
@@ -120,8 +122,10 @@ export const ITEM_IMPORT = {
             fieldMap[values[0]] = values[1];
         });
         const arr: [] = getProperty(this.esRecord, arrField);
+        // mutating esRecord
         this.esRecord.optionFieldMap = {};
         arr.map((obj: any, index: number) => {
+            // get field from fieldMap else from _optionfield (auto enumerate from 1)
             const nsField: string = fieldMap[getProperty(obj, esField)] || this.esConfig[permission + _OPTIONFIELD] + (index + 1);
             this.esRecord.optionFieldMap[`option${index + 1}`] = nsField;
             const values = getProperty(obj, esValueField);
@@ -189,6 +193,7 @@ export const ITEM_EXPORT = {
     putRecord(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esId: string) {
         const { permission } = this.esConfig;
         const { _PUTURL, _PUTURL1 } = EXTERNAL_STORES_CONFIG.KEYS;
+        // rare case of using conjuntion, not sure if it returned variant or product
         const response: Shopify.SingleProduct & Shopify.SingleVariant = parseResponse(https.put({
             url: (this.nsRecord.search.isParent ? this.esConfig[permission + _PUTURL] : this.esConfig[permission + _PUTURL1]) + esId + ".json",
             body: JSON.stringify(this.esRecord),
@@ -204,6 +209,7 @@ export const ITEM_EXPORT = {
     },
 
     shouldReduce(context: EntryPoints.MapReduce.mapContext, nsItem: Record<string, any>) {
+        // nsItem.esRecord will be undefined in putRecord case (simple product, variant update)
         nsItem.isMatrix && nsItem.esRecord && context.write(String(nsItem.parent), nsItem);
     },
 

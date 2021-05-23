@@ -36,11 +36,11 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    throw Error();
+    return;
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    throw Error();
+    return;
 }
 
 export const functions: any = {
@@ -171,7 +171,9 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
             });
 
         if (!result) {
+            // mutate nsSearch to pass info to reduce stage
             nsSearch.esRecord = esRecord;
+            // intentional, rest steps are to be done in reduce stage (wrapper)
             throw Error("");
         }
 

@@ -37,14 +37,14 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 }
 
 export function reduce(context: EntryPoints.MapReduce.reduceContext) {
-    throw Error();
+    return;
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    throw Error();
+    return;
 }
 
-export const functions: any = {
+export const functions = {
     setValue(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esFields: string) {
         for (const esField of esFields.split("|")) {
             const value = getProperty(this.esRecord, esField);
@@ -113,10 +113,11 @@ export function process(wrapper: any, esRecord: any) {
             const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
-            const _function = wrapper[functionName] || recordType[functionName] || functions[functionName];
+            const _function = wrapper[functionName] || recordType[functionName] || (functions as any)[functionName];
             _function && _function.apply({ nsRecord, esRecord, esConfig }, args);
         }
 
+        // mutate esRecord to pass info to reduce stage
         esRecord.nsId = nsId = String(nsRecord.save({
             ignoreMandatoryFields: true
         }));
