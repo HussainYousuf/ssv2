@@ -160,7 +160,7 @@ export function getProperty(object: any, property: string) {
     return object;
 }
 
-export function getMaxDate(isExport: boolean) {
+export function getMaxDate(isExport?: boolean) {
     const { filters, store, rsRecType } = init();
     filters.pop();
     filters.push(
@@ -193,10 +193,10 @@ export function getMaxDate(isExport: boolean) {
 
     if (maxDate) maxDate = format.parse({ type: format.Type.DATETIMETZ, value: maxDate }) as Date;
     log.debug("common.getMaxDate => maxDate", maxDate);
-    return maxDate as Date;
+    return maxDate as Date | undefined;
 }
 
-export function upsertMaxDate(isExport: boolean) {
+export function upsertMaxDate(isExport?: boolean) {
     const { filters } = init();
 
     const maxColumn = search.createColumn({

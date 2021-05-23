@@ -3,29 +3,14 @@ import record from 'N/record';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, init, getRecordType, getProperty } from './h3_common';
+import { getWrapper, init, getRecordType, getProperty, upsertMaxDate, getMaxDate } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const { filters } = init();
-
-    const maxEsModDateCol = search.createColumn({
-        name: RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE,
-        summary: search.Summary.MAX,
-    });
-
-    let maxEsModDate: string | Date = search.create({
-        type: RECORDS_SYNC.ID,
-        filters,
-        columns: [maxEsModDateCol]
-    }).run().getRange(0, 1)[0]?.getValue(maxEsModDateCol) as string;
-
-    if (maxEsModDate) maxEsModDate = (format.parse({ type: format.Type.DATETIMETZ, value: maxEsModDate }) as Date);
-    log.debug("import.getInputData => maxEsModDate", maxEsModDate);
-
-    return getWrapper().getRecords(maxEsModDate);
+    const maxDate = getMaxDate();
+    return getWrapper().getRecords(maxDate);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
@@ -36,7 +21,7 @@ export function map(context: EntryPoints.MapReduce.mapContext) {
 }
 
 export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
-    return;
+    upsertMaxDate();
 }
 
 export const functions = {

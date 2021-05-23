@@ -9,9 +9,8 @@ import format from 'N/format';
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
-    const { esConfig } = init();
     const maxDate = getMaxDate(true);
-    return getRecordType().getRecords?.(maxDate, esConfig) || functions.getRecords(maxDate, esConfig);
+    return getRecordType().getRecords?.(maxDate) || functions.getRecords(maxDate);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
@@ -47,9 +46,9 @@ export const functions = {
         }
     },
 
-    getRecords(maxNsModDate: string | Date | undefined, esConfig: Record<string, any>) {
+    getRecords(maxNsModDate: string | Date | undefined) {
 
-        const { permission } = esConfig;
+        const { permission, esConfig } = init();
         const { filterExpression: filters, columns, searchType } = search.load({
             id: esConfig[permission + EXTERNAL_STORES_CONFIG.KEYS._SEARCHID]
         });
