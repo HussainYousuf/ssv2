@@ -232,7 +232,7 @@ export const ITEM_EXPORT = {
             const existingVariantIds: number[] = [];
 
             if (parent) {
-                // post
+                // case when there's a new matrix product and its variants 
                 const query = parent.esItem;
                 query.product.variants = values.map(value => value.esItem.variant).sort(sortFunction(sortedOptions));
                 if (!query.product.variants.length) throw Error(`Can't create product {nsId: ${key}} without atleast one variant`);
@@ -244,7 +244,11 @@ export const ITEM_EXPORT = {
                     }
                 }));
             } else {
-                // put
+                // case when only new variants are added
+                // also later if u alter the sorting criteria and want to reorder on es, 
+                // invoke this by deleting any item-variant entry of records sync and edit the same item again, 
+                // this will skip the initial putRecord method and invoke this. 
+                // not generalizing this behaviour as its rare
                 const productEsId = search.create({
                     type: RECORDS_SYNC.ID,
                     filters: [
@@ -264,8 +268,8 @@ export const ITEM_EXPORT = {
                 }));
                 const query = response;
                 query.product.variants.map((variant: any) => existingVariantIds.push(variant.id));
-                query.product.variants.push(...values.map(value => value.esItem.variant));
-                query.product.variants.sort(sortFunction(sortedOptions));
+                query.product.variants.push(...values.map(value => value.esItem.variant)); // pushing new variants with existing ones
+                query.product.variants.sort(sortFunction(sortedOptions)); // sorting em all
                 response = parseResponse(https.put({
                     url: esConfig[permission + _PUTURL] + productEsId + ".json",
                     body: JSON.stringify(query),
@@ -273,12 +277,16 @@ export const ITEM_EXPORT = {
                         "Content-Type": "application/json"
                     }
                 }));
+                // [feature], if partial fail of variant is allowed remove that variant from values else it will mess up esid assignment 
             }
 
+            // this is for error logging, options are added because of sorting in next step
             values.forEach((value, index, array) => {
                 const { nsId, nsModDate, rsId, esItem: { option1 = null, option2 = null, option3 = null } } = value;
                 array[index] = { nsId, nsModDate, rsId, option1, option2, option3 };
             });
+            // we need to sort as we are going to compare with response variants (newly created only) to get esId 
+            // sorting is based on option fields only, and that is later used to associate esids to our nsids
             values.sort(sortFunction(sortedOptions));
 
             const rsData = [];
