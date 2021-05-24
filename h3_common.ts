@@ -164,11 +164,9 @@ export function getMaxDate(isExport?: boolean) {
     const { filters, store, rsRecType } = init();
     filters.pop();
     filters.push(
-        [
-            [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
-            "OR",
-            [RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
-        ]
+        [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
+        "AND",
+        [RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
     );
     const maxColumn = isExport ? RECORDS_SYNC.FIELDS.NETSUITE_MODIFICATION_DATE : RECORDS_SYNC.FIELDS.EXTERNAL_MODIFICATION_DATE;
 
@@ -217,11 +215,9 @@ export function upsertMaxDate(isExport?: boolean) {
 
     filters.pop();
     filters.push(
-        [
-            [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
-            "OR",
-            [RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
-        ]
+        [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
+        "AND",
+        [RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, RECORDS_SYNC.VALUES.MAXDATEID],
     );
 
     const prevMaxDateSearch = search.create({
