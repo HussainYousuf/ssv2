@@ -210,7 +210,9 @@ export function upsertMaxDate(isExport?: boolean) {
         columns: [maxColumn]
     }).run().getRange(0, 1)[0]?.getValue(maxColumn) as string;
 
-    if (maxDate) maxDate = (format.parse({ type: format.Type.DATETIMETZ, value: maxDate }) as Date);
+    if (!maxDate) return;
+
+    maxDate = format.parse({ type: format.Type.DATETIMETZ, value: maxDate }) as Date;
     log.debug("common.upsertMaxDate => maxDate", maxDate);
 
     filters.pop();
@@ -222,14 +224,19 @@ export function upsertMaxDate(isExport?: boolean) {
         ]
     );
 
+    const prevMaxDateSearch = search.create({
+        type: RECORDS_SYNC.ID,
+        filters
+    }).run().getRange(0, 1)[0]; // confrmed as created above
+
+    let prevMaxDate: string | Date = prevMaxDateSearch.getValue(maxColumn.name) as string;
+    prevMaxDate = prevMaxDate ? format.parse({ value: prevMaxDate, type: format.Type.DATETIMETZ }) as Date : new Date(0);
+
     record.submitFields({
-        id: search.create({
-            type: RECORDS_SYNC.ID,
-            filters
-        }).run().getRange(0, 1)[0].id,
+        id: prevMaxDateSearch.id,
         type: RECORDS_SYNC.ID,
         values: {
-            [maxColumn.name]: maxDate
+            [maxColumn.name]: maxDate > prevMaxDate ? maxDate : prevMaxDate
         },
     });
 }
