@@ -3,7 +3,7 @@ import record from 'N/record';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, init, getRecordType, getFormattedDateTime, getMaxDate, upsertMaxDate } from './h3_common';
+import { getWrapper, init, getRecordType, getFormattedDateTimeString, getMaxDate, upsertMaxDate } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -58,7 +58,7 @@ export const functions = {
         );
 
         if (maxNsModDate) {
-            maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
+            maxNsModDate = getFormattedDateTimeString(maxNsModDate as Date);
             filters.length && filters.push("AND");
             filters.push([
                 [`formulatext: CASE WHEN to_char({lastmodifieddate},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],

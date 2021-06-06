@@ -1,7 +1,7 @@
 import search from 'N/search';
 import constants from './h3_constants';
 import format from 'N/format';
-import { getFormattedDateTime, init } from './h3_common';
+import { getFormattedDateTimeString, init } from './h3_common';
 
 
 const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -33,7 +33,7 @@ export const EXPORT = {
         );
 
         if (maxNsModDate) {
-            maxNsModDate = getFormattedDateTime(maxNsModDate as Date);
+            maxNsModDate = getFormattedDateTimeString(maxNsModDate as Date);
             filters.length && filters.push("AND");
             filters.push([
                 [`formulatext: CASE WHEN to_char({modified},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],

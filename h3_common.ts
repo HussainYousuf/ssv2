@@ -42,7 +42,7 @@ export function getFailedRecords(column: string, filters: any[]) {
 }
 
 // serializes date obj to yyyy-mm-dd hh24:mi:ss
-export function getFormattedDateTime(dateObj: Date) {
+export function getFormattedDateTimeString(dateObj: Date) {
     return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60 * 1000).toISOString().split(".")[0].replace("T", " ");
     // new Date(dateObj.toString().split('GMT')[0]+'UTC').toISOString().split(".")[0].replace("T", " ") alternate logic
 }
