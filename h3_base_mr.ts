@@ -41,7 +41,7 @@ function init() {
         (function (result: search.Result) {
             const store = result.getValue(result.columns[0].name) as string;
             const permissions = decrypt(result.getValue(result.columns[1].name) as string);
-            permissions.map(permission => storePermissions.push({ store, permission }));
+            permissions.forEach(permission => storePermissions.push({ store, permission }));
         }),
         EXTERNAL_STORES_CONFIG.ID,
         [EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, EXTERNAL_STORES_CONFIG.KEYS.KEY],

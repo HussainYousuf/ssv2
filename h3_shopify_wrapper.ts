@@ -80,7 +80,7 @@ export const ITEM_IMPORT = {
     },
 
     shouldReduce(context: EntryPoints.MapReduce.mapContext, esRecord: { variants: Record<string, any>[], optionFieldMap: Record<string, any>, nsId: string; }) {
-        esRecord.variants?.map((value, index) => esRecord.nsId && context.write(String(index), {
+        esRecord.variants?.forEach((value, index) => esRecord.nsId && context.write(String(index), {
             ...value,
             productNsId: esRecord.nsId,
             optionFieldMap: esRecord.optionFieldMap
@@ -149,7 +149,7 @@ export const ITEM_IMPORT = {
     },
 
     reduce(context: EntryPoints.MapReduce.reduceContext) {
-        context.values.map(value => {
+        context.values.forEach(value => {
             const esItem = ITEM_IMPORT.parseRecord(value);
             getOperation().process(ITEM_IMPORT, esItem);
         }); 
@@ -170,7 +170,7 @@ export const ITEM_EXPORT = {
         if (this.nsRecord.search.isParent) {
             if (this.esRecord.product) {
                 this.esRecord = this.esRecord.product;
-                getOperation().functions.setValue.call(this, esField, nsFields);
+                getOperation().functions.setRecordValue.call(this, esField, nsFields);
             } else {
                 this.esRecord.product = {};
                 ITEM_EXPORT.setProductValue.call(this, esField, nsFields);
@@ -182,7 +182,7 @@ export const ITEM_EXPORT = {
         if (this.nsRecord.search.isChild) {
             if (this.esRecord.variant) {
                 this.esRecord = this.esRecord.variant;
-                getOperation().functions.setValue.call(this, esField, nsFields);
+                getOperation().functions.setRecordValue.call(this, esField, nsFields);
             } else {
                 this.esRecord.variant = {};
                 ITEM_EXPORT.setVariantValue.call(this, esField, nsFields);
@@ -220,15 +220,15 @@ export const ITEM_EXPORT = {
             const key = context.key;
             const values = context.values.map(value => JSON.parse(value));
             const { _GETURL, _POSTURL, _PUTURL, _SORTEDOPTIONS } = EXTERNAL_STORES_CONFIG.KEYS;
-            const sortedOptions: string[] = esConfig[permission + _SORTEDOPTIONS]?.split(",").map((i: string) => i.trim()).filter((i: string) => i).reverse() || [];
+            const sortedOptions: string[] = esConfig[permission + _SORTEDOPTIONS]?.split(",").map((i: string) => i.trim()).filter((i: string) => i) || [];
 
             const sortFunction = (sortedOptions: string[]) => (
                 (
                     { option1: a1 = "", option2: b1 = "", option3: c1 = "" },
                     { option1: a2 = "", option2: b2 = "", option3: c2 = "" }
                 ) =>
-                    sortedOptions.indexOf(a2) + sortedOptions.indexOf(b2) + sortedOptions.indexOf(c2) -
-                    (sortedOptions.indexOf(a1) + sortedOptions.indexOf(b1) + sortedOptions.indexOf(c1))
+                    sortedOptions.indexOf(a1) + sortedOptions.indexOf(b1) + sortedOptions.indexOf(c1) -
+                    (sortedOptions.indexOf(a2) + sortedOptions.indexOf(b2) + sortedOptions.indexOf(c2))
             );
 
             const parentIndex = values.findIndex(value => value.nsId == key);

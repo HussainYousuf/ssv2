@@ -15,7 +15,7 @@ export function getInputData(context: EntryPoints.MapReduce.getInputDataContext)
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
     const wrapper = getWrapper();
-    const nsSearch = getRecordType().parseRecord?.(context.value) || functions.parseRecord(context.value);
+    const nsSearch = (getRecordType().parseRecord || functions.parseRecord)(context.value);
     process(wrapper, nsSearch);
     wrapper.shouldReduce?.(context, nsSearch);
 }
@@ -26,7 +26,7 @@ export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
 
 export const functions = {
 
-    setValue(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
+    setRecordValue(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
         for (const nsField of nsFields.split("|")) {
             const value = this.nsRecord.record.getValue(nsField);
             if (value) {
@@ -36,7 +36,7 @@ export const functions = {
         }
     },
 
-    setText(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
+    setRecordText(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
         for (const nsField of nsFields.split("|")) {
             const value = this.nsRecord.record.getText(nsField);
             if (value) {

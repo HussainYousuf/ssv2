@@ -62,7 +62,7 @@ export function areOtherDeploymentsRunning(scriptId: string, deploymentId: strin
 export function searchRecords(callback: any, type: search.SearchCreateOptions['type'], filters?: search.SearchCreateOptions['filters'], columns?: search.SearchCreateOptions['columns']) {
     const pagedData = search.create({ type, filters, columns }).runPaged({ pageSize: 1000 });
     for (let i = 0; i < pagedData.pageRanges.length; i++) {
-        pagedData.fetch({ index: i }).data.map(callback);
+        pagedData.fetch({ index: i }).data.forEach(callback);
     }
 }
 
