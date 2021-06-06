@@ -37,7 +37,8 @@ export default {
             },
             VALUES: {
                 FAILED: "failed",
-                MAXDATEID: "-100"
+                MAXDATEID: "-100",
+                ADDRESS: "address"
             }
         },
         EXTERNAL_STORES_CONFIG: {

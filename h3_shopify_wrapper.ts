@@ -172,26 +172,24 @@ export const ITEM_EXPORT = {
     },
 
     setProductValue(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
-        if (this.nsRecord.search.isParent) {
-            if (this.esRecord.product) {
-                this.esRecord = this.esRecord.product;
-                getOperation().functions.setRecordValue.call(this, esField, nsFields);
-            } else {
-                this.esRecord.product = {};
-                ITEM_EXPORT.setProductValue.call(this, esField, nsFields);
-            }
+        if (!this.nsRecord.search.isParent) return;
+        if (this.esRecord.product) {
+            this.esRecord = this.esRecord.product;
+            getOperation().functions.setRecordValue.call(this, esField, nsFields);
+        } else {
+            this.esRecord.product = {};
+            ITEM_EXPORT.setProductValue.call(this, esField, nsFields);
         }
     },
 
     setVariantValue(this: { nsRecord: { record: record.Record, search: Record<string, any>; }, esRecord: Record<string, any>, esConfig: Record<string, any>; }, esField: string, nsFields: string) {
-        if (this.nsRecord.search.isChild) {
-            if (this.esRecord.variant) {
-                this.esRecord = this.esRecord.variant;
-                getOperation().functions.setRecordValue.call(this, esField, nsFields);
-            } else {
-                this.esRecord.variant = {};
-                ITEM_EXPORT.setVariantValue.call(this, esField, nsFields);
-            }
+        if (!this.nsRecord.search.isChild) return;
+        if (this.esRecord.variant) {
+            this.esRecord = this.esRecord.variant;
+            getOperation().functions.setRecordValue.call(this, esField, nsFields);
+        } else {
+            this.esRecord.variant = {};
+            ITEM_EXPORT.setVariantValue.call(this, esField, nsFields);
         }
     },
 
@@ -346,6 +344,21 @@ export const CUSTOMER_IMPORT = {
     parseRecord(_record: string) {
         return parseRecord(_record, record.Type.CUSTOMER as unknown as string);
     },
+
+    setAddresses(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
+        if (this.nsRecord.id) {
+            search.create({
+                type: RECORDS_SYNC.ID,
+                filters: [
+                    [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, this.nsRecord.id],
+                    "AND",
+                    [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, RECORDS_SYNC.VALUES.ADDRESS]
+                ]
+            });
+        } else {
+
+        }
+    }
 
 };
 
