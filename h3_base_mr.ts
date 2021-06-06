@@ -35,13 +35,13 @@ export function summarize(context: EntryPoints.MapReduce.summarizeContext) {
 function init() {
     const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
-    const storePermissions: { store: string, permission: string; }[] = [];
+    const storePermissions: { store: string, permission: string, deploymentId: string; }[] = [];
 
     searchRecords(
         (function (result: search.Result) {
             const store = result.getValue(result.columns[0].name) as string;
-            const permissions = decrypt(result.getValue(result.columns[1].name) as string);
-            permissions.forEach(permission => storePermissions.push({ store, permission }));
+            const { permissions, deploymentId } = decrypt(result.getValue(result.columns[1].name) as string);
+            permissions.forEach(permission => storePermissions.push({ store, permission, deploymentId }));
         }),
         EXTERNAL_STORES_CONFIG.ID,
         [EXTERNAL_STORES_CONFIG.FIELDS.KEY, search.Operator.IS, EXTERNAL_STORES_CONFIG.KEYS.KEY],
@@ -51,6 +51,6 @@ function init() {
     scheduleScript(storePermissions);
 }
 
-function decrypt(text: string): [string] {
-    return JSON.parse(text).permissions;
+function decrypt(text: string) {
+    return JSON.parse(text) as { permissions: string[], deploymentId: string; };
 }

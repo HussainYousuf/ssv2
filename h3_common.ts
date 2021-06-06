@@ -64,15 +64,15 @@ export function searchRecords(callback: (result: search.Result) => void, type: s
     }
 }
 
-export function scheduleScript(storePermissions: { store: string, permission: string; }[]) {
-    if (storePermissions.length == 0) return;
+export function scheduleScript(storePermissions: { store: string, permission: string, deploymentId: string; }[]) {
+    if (!storePermissions.length) return;
     log.debug("common.scheduleScript => storePermissions", storePermissions);
-    const { store, permission } = storePermissions[0];
+    const { store, permission, deploymentId } = storePermissions[0];
     const esConfig = getEsConfig(store, permission);
     task.create({
         taskType: task.TaskType.MAP_REDUCE,
         scriptId: constants.SCRIPTS.BASE_MR,
-        deploymentId: constants.SCRIPTS_DEPLOYMENTS.BASE_MR,
+        deploymentId,
         params: {
             [BASE_MR_STORE_PERMISSIONS]: JSON.stringify(storePermissions),
             [BASE_MR_ESCONFIG]: JSON.stringify(esConfig),
