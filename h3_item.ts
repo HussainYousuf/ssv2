@@ -1,10 +1,10 @@
 import search from 'N/search';
 import constants from './h3_constants';
 import format from 'N/format';
-import { getFormattedDateTimeString, init } from './h3_common';
+import { getFailedRecords, getFormattedDateTimeString, init } from './h3_common';
 
 
-const { EXTERNAL_STORES_CONFIG } = constants.RECORDS;
+const { EXTERNAL_STORES_CONFIG, RECORDS_SYNC } = constants.RECORDS;
 
 export const IMPORT = {
 
@@ -22,7 +22,10 @@ export const EXPORT = {
 
     getRecords(maxNsModDate: string | Date | undefined) {
 
-        const { permission, esConfig } = init();
+        const { permission, esConfig, filters: _filters } = init();
+        _filters.pop();
+        _filters.push([RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, ""]);
+        const ids = getFailedRecords(RECORDS_SYNC.FIELDS.NETSUITE_ID, _filters);
         const { filterExpression: filters, columns } = search.load({
             id: esConfig[permission + EXTERNAL_STORES_CONFIG.KEYS._SEARCHID]
         });
@@ -36,6 +39,8 @@ export const EXPORT = {
             maxNsModDate = getFormattedDateTimeString(maxNsModDate as Date);
             filters.length && filters.push("AND");
             filters.push([
+                ["internalid", search.Operator.ANYOF, ids],
+                "OR",
                 [`formulatext: CASE WHEN to_char({modified},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
                 "OR",
                 [`formulatext: CASE WHEN to_char({lastquantityavailablechange},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],

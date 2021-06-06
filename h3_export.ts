@@ -3,7 +3,7 @@ import record from 'N/record';
 import search from 'N/search';
 import log from 'N/log';
 import constants from './h3_constants';
-import { getWrapper, init, getRecordType, getFormattedDateTimeString, getMaxDate, upsertMaxDate } from './h3_common';
+import { getWrapper, init, getRecordType, getFormattedDateTimeString, getMaxDate, upsertMaxDate, getFailedRecords } from './h3_common';
 import format from 'N/format';
 
 const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
@@ -48,7 +48,11 @@ export const functions = {
 
     getRecords(maxNsModDate: string | Date | undefined) {
 
-        const { permission, esConfig } = init();
+        const { permission, esConfig, filters: _filters } = init();
+        _filters.pop();
+        _filters.push([RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, ""]);
+        const ids = getFailedRecords(RECORDS_SYNC.FIELDS.NETSUITE_ID, _filters);
+
         const { filterExpression: filters, columns, searchType } = search.load({
             id: esConfig[permission + EXTERNAL_STORES_CONFIG.KEYS._SEARCHID]
         });
@@ -61,6 +65,8 @@ export const functions = {
             maxNsModDate = getFormattedDateTimeString(maxNsModDate as Date);
             filters.length && filters.push("AND");
             filters.push([
+                ["internalid", search.Operator.ANYOF, ids],
+                "OR",
                 [`formulatext: CASE WHEN to_char({lastmodifieddate},'yyyy-mm-dd hh24:mi:ss') >= '${maxNsModDate}' THEN 'T' END`, search.Operator.IS, "T"],
             ]);
         }
