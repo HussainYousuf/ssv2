@@ -93,7 +93,7 @@ export function process(wrapper: any, esRecord: any) {
             const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
-            const _function = wrapper[functionName] || recordType[functionName] || (functions as any)[functionName];
+            const _function = (wrapper[functionName] || recordType[functionName] || (functions as any))[functionName];
             _function && _function.apply({ nsRecord, esRecord, esConfig }, args);
         }
 

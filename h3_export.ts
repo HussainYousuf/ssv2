@@ -10,7 +10,7 @@ const { RECORDS_SYNC, EXTERNAL_STORES_CONFIG } = constants.RECORDS;
 
 export function getInputData(context: EntryPoints.MapReduce.getInputDataContext) {
     const maxDate = getMaxDate(true);
-    return getRecordType().getRecords?.(maxDate) || functions.getRecords(maxDate);
+    return (getRecordType().getRecords || functions.getRecords)(maxDate);
 }
 
 export function map(context: EntryPoints.MapReduce.mapContext) {
@@ -131,7 +131,7 @@ export function process(wrapper: Record<string, any>, nsSearch: Record<string, a
             const values = value.split(/\s+/);
             const functionName = values[0];
             const args = values.slice(1);
-            const _function = wrapper[functionName] || recordType[functionName] || (functions as any)[functionName];
+            const _function = (wrapper[functionName] || recordType[functionName] || (functions as any))[functionName];
             _function && _function.apply({
                 nsRecord: { record: nsRecord, search: nsSearch },
                 esRecord,

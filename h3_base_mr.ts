@@ -2,9 +2,6 @@
  *@NApiVersion 2.1
  *@NScriptType MapReduceScript
  */
-
-
-
 import { EntryPoints } from 'N/types';
 import search from 'N/search';
 import constants from './h3_constants';
