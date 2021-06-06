@@ -49,6 +49,9 @@ function getRecords(maxEsModDate: Date | undefined) {
         scheduleScript(storePermissions.slice(1));
     }
 
+    filters.pop();
+    filters.push([RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, ""]);
+    
     const ids = getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID, filters).join();
     if (ids) {
         const response = parseResponse(https.get({

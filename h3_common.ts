@@ -32,8 +32,6 @@ export function init() {
 }
 
 export function getFailedRecords(column: string, filters: any[]) {
-    filters.pop();
-    filters.push([RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, ""]);
     const failedRecords: string[] = [];
     searchRecords((function (result: search.Result) {
         failedRecords.push(String(result.getValue(column)));
