@@ -51,7 +51,7 @@ function getRecords(maxEsModDate: Date | undefined) {
 
     filters.pop();
     filters.push([RECORDS_SYNC.FIELDS.STATUS, search.Operator.IS, ""]);
-    
+
     const ids = getFailedRecords(RECORDS_SYNC.FIELDS.EXTERNAL_ID, filters).join();
     if (ids) {
         const response = parseResponse(https.get({
@@ -113,11 +113,13 @@ export const ITEM_IMPORT = {
         const { permission } = this.esConfig;
         const { _FIELDMAP, _OPTIONLIST, _OPTIONFIELD } = EXTERNAL_STORES_CONFIG.KEYS;
         // populating existing options
-        const options: string[] = [];
-        searchRecords((function (this: typeof options, result: search.Result) {
-            const name = result.getValue(result.columns[0].name) as string;
-            this.push(name);
-        }).bind(options), this.esConfig[permission + _OPTIONLIST], [], ["name"]);
+        const existingOptions: string[] = [];
+        searchRecords(
+            ((result: search.Result) => existingOptions.push(result.getValue(result.columns[0].name) as string)),
+            this.esConfig[permission + _OPTIONLIST],
+            [],
+            ["name"]
+        );
 
         const fieldMap: Record<string, string> = {};
         (this.esConfig[permission + _FIELDMAP] || []).map((value: string) => {
@@ -133,7 +135,7 @@ export const ITEM_IMPORT = {
             this.esRecord.optionFieldMap[`option${index + 1}`] = nsField;
             const values = getProperty(obj, esValueField);
             values.map((value: string) => {
-                if (!options.includes(String(value))) {
+                if (!existingOptions.includes(String(value))) {
                     record.create({ type: this.esConfig[permission + _OPTIONLIST], isDynamic: true })
                         .setValue("name", value)
                         .setValue("abbreviation", value.substring(0, 15))
@@ -155,7 +157,7 @@ export const ITEM_IMPORT = {
         context.values.forEach(value => {
             const esItem = ITEM_IMPORT.parseRecord(value);
             getOperation().process(ITEM_IMPORT, esItem);
-        }); 
+        });
     }
 
 };
