@@ -54,6 +54,7 @@ export default {
                 _FUNCTIONS: "_functions",
                 _SEARCHID: "_searchid",
                 _FIELDMAP: "_fieldmap",
+                _ADDRESSFIELDMAP: "_addressfieldmap",
                 _GETURL: "_geturl",
                 _OPTIONLIST: "_optionlist",
                 _OPTIONFIELD: "_optionfield",

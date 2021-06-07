@@ -122,7 +122,7 @@ export const ITEM_IMPORT = {
         );
 
         const fieldMap: Record<string, string> = {};
-        (this.esConfig[permission + _FIELDMAP] || []).map((value: string) => {
+        (this.esConfig[permission + _FIELDMAP] || []).forEach((value: string) => {
             const values = value.split(/\s+/);
             fieldMap[values[0]] = values[1];
         });
@@ -347,7 +347,7 @@ export const CUSTOMER_IMPORT = {
         return parseRecord(_record, record.Type.CUSTOMER as unknown as string);
     },
 
-    setAddress(nsRecord: record.Record, esAddresses: Shopify.Address[], nsId?: number, esId?: number) {
+    setAddress(nsRecord: record.Record, esAddresses: Shopify.Address[], addressFieldMap: Record<string, string>, nsId?: number, esId?: number) {
         const lineCount = nsRecord.getLineCount({ sublistId: "addressbook" });
         const esAddress = esId ? esAddresses[esId] : esAddresses[0];
         if (!esAddress) return;
@@ -372,6 +372,14 @@ export const CUSTOMER_IMPORT = {
     setAddresses(this: { nsRecord: record.Record, esRecord: Shopify.Customer, esConfig: Record<string, any>; }, esField: string) {
 
         const esAddresses = this.esRecord.addresses;
+        const { permission } = this.esConfig;
+        const { _ADDRESSFIELDMAP } = EXTERNAL_STORES_CONFIG.KEYS;
+        const addressFieldMap: Record<string, string> = {};
+        (this.esConfig[permission + _ADDRESSFIELDMAP] || []).forEach((value: string) => {
+            const values = value.split(/\s+/);
+            addressFieldMap[values[0]] = values[1];
+        });
+        
         const searchResult = search.create({
             type: RECORDS_SYNC.ID,
             filters: [
@@ -386,7 +394,7 @@ export const CUSTOMER_IMPORT = {
         if (searchResult) {
             const extras: { nsId: number, esId: number; }[] = JSON.parse(searchResult.getValue(RECORDS_SYNC.FIELDS.EXTRAS) as string);
             rsId = searchResult.id;
-            extras.forEach(({ nsId, esId }) => CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, nsId, esId));
+            extras.forEach(({ nsId, esId }) => CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, addressFieldMap, nsId, esId));
         } else {
             record.create({ type: RECORDS_SYNC.ID, isDynamic: true })
                 .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, String(this.esRecord.id))
@@ -394,7 +402,7 @@ export const CUSTOMER_IMPORT = {
                 .save({ ignoreMandatoryFields: true });
         }
         // new addresses
-        CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses);
+        CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, addressFieldMap);
     }
 
 };
