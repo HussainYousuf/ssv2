@@ -139,7 +139,7 @@ export const ITEM_IMPORT = {
                     record.create({ type: this.esConfig[permission + _OPTIONLIST], isDynamic: true })
                         .setValue("name", value)
                         .setValue("abbreviation", value.substring(0, 15))
-                        .save();
+                        .save({ ignoreMandatoryFields: true });
                 }
             });
             this.nsRecord.setText(nsField, values);
@@ -339,14 +339,38 @@ export const ITEM_EXPORT = {
 
 export const CUSTOMER_IMPORT = {
 
+    // const 
+
     getRecords,
 
     parseRecord(_record: string) {
         return parseRecord(_record, record.Type.CUSTOMER as unknown as string);
     },
 
+    setAddress(nsRecord: record.Record, esAddresses: Shopify.Address[], nsId?: number, esId?: number) {
+        const lineCount = nsRecord.getLineCount({ sublistId: "addressbook" });
+        const esAddress = esId ? esAddresses[esId] : esAddresses[0];
+        if (!esAddress) return;
+
+        nsId ? nsRecord.selectLine({
+            sublistId: "addressbook",
+            line: nsRecord.findSublistLineWithValue({
+                sublistId: "addressbook",
+                fieldId: "addressid",
+                value: nsId
+            })
+        }) : nsRecord.selectNewLine({ sublistId: "addressbook" });
+
+        nsRecord.getCurrentSublistSubrecord({
+            sublistId: "addressbook",
+            fieldId: "addressbookaddress"
+        })
+            .setValue("addr1", "");
+
+    },
+
     setAddresses(this: { nsRecord: record.Record, esRecord: Shopify.Customer, esConfig: Record<string, any>; }, esField: string) {
-        
+
         const esAddresses = this.esRecord.addresses;
         const searchResult = search.create({
             type: RECORDS_SYNC.ID,
@@ -360,10 +384,17 @@ export const CUSTOMER_IMPORT = {
 
         let rsId;
         if (searchResult) {
-            const extras = searchResult.getValue(RECORDS_SYNC.FIELDS.EXTRAS)
+            const extras: { nsId: number, esId: number; }[] = JSON.parse(searchResult.getValue(RECORDS_SYNC.FIELDS.EXTRAS) as string);
+            rsId = searchResult.id;
+            extras.forEach(({ nsId, esId }) => CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, nsId, esId));
         } else {
-
+            record.create({ type: RECORDS_SYNC.ID, isDynamic: true })
+                .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, String(this.esRecord.id))
+                .setValue(RECORDS_SYNC.FIELDS.RECORD_TYPE, RECORDS_SYNC.VALUES.ADDRESS)
+                .save({ ignoreMandatoryFields: true });
         }
+        // new addresses
+        CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses);
     }
 
 };
