@@ -115,7 +115,7 @@ export const ITEM_IMPORT = {
         // populating existing options
         const existingOptions: string[] = [];
         searchRecords(
-            ((result: search.Result) => existingOptions.push(result.getValue(result.columns[0].name) as string)),
+            ((result: search.Result) => existingOptions.push(result.getValue("name") as string)),
             this.esConfig[permission + _OPTIONLIST],
             [],
             ["name"]
@@ -345,16 +345,22 @@ export const CUSTOMER_IMPORT = {
         return parseRecord(_record, record.Type.CUSTOMER as unknown as string);
     },
 
-    setAddresses(this: { nsRecord: record.Record, esRecord: Record<string, any>, esConfig: Record<string, any>; }, nsField: string, esField: string) {
-        if (this.nsRecord.id) {
-            search.create({
-                type: RECORDS_SYNC.ID,
-                filters: [
-                    [RECORDS_SYNC.FIELDS.NETSUITE_ID, search.Operator.IS, this.nsRecord.id],
-                    "AND",
-                    [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, RECORDS_SYNC.VALUES.ADDRESS]
-                ]
-            });
+    setAddresses(this: { nsRecord: record.Record, esRecord: Shopify.Customer, esConfig: Record<string, any>; }, esField: string) {
+        
+        const esAddresses = this.esRecord.addresses;
+        const searchResult = search.create({
+            type: RECORDS_SYNC.ID,
+            filters: [
+                [RECORDS_SYNC.FIELDS.EXTERNAL_ID, search.Operator.IS, String(this.esRecord.id)],
+                "AND",
+                [RECORDS_SYNC.FIELDS.RECORD_TYPE, search.Operator.IS, RECORDS_SYNC.VALUES.ADDRESS]
+            ],
+            columns: [RECORDS_SYNC.FIELDS.EXTRAS]
+        }).run().getRange(0, 1)[0];
+
+        let rsId;
+        if (searchResult) {
+            const extras = searchResult.getValue(RECORDS_SYNC.FIELDS.EXTRAS)
         } else {
 
         }

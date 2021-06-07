@@ -85,8 +85,8 @@ function getEsConfig(store: string, permission: string) {
     const { TYPE } = EXTERNAL_STORES_CONFIG.KEYS;
     searchRecords(
         (function (result: search.Result) {
-            const key = String(result.getValue(result.columns[0].name)).trim();
-            const value = String(result.getValue(result.columns[1].name)).split("\n").map(value => value.trim()).filter(value => value);
+            const key = String(result.getValue(EXTERNAL_STORES_CONFIG.FIELDS.KEY)).trim();
+            const value = String(result.getValue(EXTERNAL_STORES_CONFIG.FIELDS.VALUE)).split("\n").map(value => value.trim()).filter(value => value);
             if (value.length) {
                 if (value.length > 1)
                     esConfig[key] = value;
@@ -186,8 +186,8 @@ export function getMaxDate(isExport?: boolean) {
 
 
     let maxDate: string | Date = maxDateSearch?.getValue(maxColumn) as string;
-
     if (maxDate) maxDate = format.parse({ type: format.Type.DATETIMETZ, value: maxDate }) as Date;
+
     log.debug("common.getMaxDate => maxDate", maxDate);
     return maxDate as Date | undefined;
 }

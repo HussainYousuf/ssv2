@@ -39,8 +39,8 @@ function init() {
 
     searchRecords(
         (function (result: search.Result) {
-            const store = result.getValue(result.columns[0].name) as string;
-            const { permissions, deploymentId } = decrypt(result.getValue(result.columns[1].name) as string);
+            const store = result.getValue(EXTERNAL_STORES_CONFIG.FIELDS.STORE) as string;
+            const { permissions, deploymentId } = decrypt(result.getValue(EXTERNAL_STORES_CONFIG.FIELDS.VALUE) as string);
             permissions.forEach(permission => storePermissions.push({ store, permission, deploymentId }));
         }),
         EXTERNAL_STORES_CONFIG.ID,
