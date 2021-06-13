@@ -347,31 +347,41 @@ export const CUSTOMER_IMPORT = {
         return parseRecord(_record, record.Type.CUSTOMER as unknown as string);
     },
 
-    setAddress(nsRecord: record.Record, esAddresses: Shopify.Address[], addressFieldMap: Record<string, string>, nsId?: number, esId?: number) {
-        const lineCount = nsRecord.getLineCount({ sublistId: "addressbook" });
-        const esAddress = esId ? esAddresses[esId] : esAddresses[0];
+    setAddress(nsRecord: record.Record, esAddresses: Shopify.Address[], addressFieldMap: Record<string, string>, insertedAddresses: { nsAddressIndex: number, esAddressIndex: number; }[], nsAddressId?: number, esAddressId?: number) {
+        const sublistId = "addressbook";
+        const esAddressIndex = esAddressId || esAddresses.findIndex(i => i);
+        const esAddress = esAddresses[esAddressIndex];
         if (!esAddress) return;
 
-        nsId ? nsRecord.selectLine({
-            sublistId: "addressbook",
+        nsAddressId ? nsRecord.selectLine({
+            sublistId,
             line: nsRecord.findSublistLineWithValue({
-                sublistId: "addressbook",
+                sublistId,
                 fieldId: "addressid",
-                value: nsId
+                value: nsAddressId
             })
-        }) : nsRecord.selectNewLine({ sublistId: "addressbook" });
+        }) : nsRecord.selectNewLine({ sublistId });
 
-        nsRecord.getCurrentSublistSubrecord({
-            sublistId: "addressbook",
+        const addressbook = nsRecord.getCurrentSublistSubrecord({
+            sublistId,
             fieldId: "addressbookaddress"
-        })
-            .setValue("addr1", "");
+        });
+        for (const [esField, nsField] of Object.entries(addressFieldMap)) {
+            addressbook.setValue(nsField, (esAddress as any)[esField]);
+        }
 
+        const nsAddressIndex = nsRecord.getCurrentSublistIndex({ sublistId });
+        nsRecord.commitLine({ sublistId });
+
+        (esAddresses as any)[esAddressIndex] = undefined;
+        insertedAddresses.push({ nsAddressIndex, esAddressIndex });
     },
 
     setAddresses(this: { nsRecord: record.Record, esRecord: Shopify.Customer, esConfig: Record<string, any>; }, esField: string) {
 
         const esAddresses = this.esRecord.addresses;
+        if (!esAddresses.length) return;
+
         const { permission } = this.esConfig;
         const { _ADDRESSFIELDMAP } = EXTERNAL_STORES_CONFIG.KEYS;
         const addressFieldMap: Record<string, string> = {};
@@ -379,7 +389,7 @@ export const CUSTOMER_IMPORT = {
             const values = value.split(/\s+/);
             addressFieldMap[values[0]] = values[1];
         });
-        
+
         const searchResult = search.create({
             type: RECORDS_SYNC.ID,
             filters: [
@@ -390,19 +400,22 @@ export const CUSTOMER_IMPORT = {
             columns: [RECORDS_SYNC.FIELDS.EXTRAS]
         }).run().getRange(0, 1)[0];
 
-        let rsId;
+        let rsId: string;
+        const insertedAddresses: { nsAddressIndex: number; esAddressIndex: number; }[] = [];
         if (searchResult) {
-            const extras: { nsId: number, esId: number; }[] = JSON.parse(searchResult.getValue(RECORDS_SYNC.FIELDS.EXTRAS) as string);
+            const extras: { nsAddressId: number, esAddressId: number; }[] = JSON.parse(searchResult.getValue(RECORDS_SYNC.FIELDS.EXTRAS) as string);
+            extras.forEach(({ nsAddressId, esAddressId }) => CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, addressFieldMap, insertedAddresses, nsAddressId, esAddressId));
             rsId = searchResult.id;
-            extras.forEach(({ nsId, esId }) => CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, addressFieldMap, nsId, esId));
         } else {
-            record.create({ type: RECORDS_SYNC.ID, isDynamic: true })
+            rsId = record.create({ type: RECORDS_SYNC.ID, isDynamic: true })
                 .setValue(RECORDS_SYNC.FIELDS.EXTERNAL_ID, String(this.esRecord.id))
                 .setValue(RECORDS_SYNC.FIELDS.RECORD_TYPE, RECORDS_SYNC.VALUES.ADDRESS)
-                .save({ ignoreMandatoryFields: true });
+                .save({ ignoreMandatoryFields: true }).toString();
         }
         // new addresses
-        CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, addressFieldMap);
+        if (!esAddresses.filter(i => i).length) return;
+        CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, addressFieldMap, insertedAddresses);
+        (this.esRecord as any)["insertedAddresses"] = insertedAddresses;
     }
 
 };
