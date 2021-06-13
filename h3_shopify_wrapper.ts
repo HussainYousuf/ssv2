@@ -351,7 +351,6 @@ export const CUSTOMER_IMPORT = {
         const sublistId = "addressbook";
         const esAddressIndex = esAddressId || esAddresses.findIndex(i => i);
         const esAddress = esAddresses[esAddressIndex];
-        if (!esAddress) return;
 
         nsAddressId ? nsRecord.selectLine({
             sublistId,
@@ -413,9 +412,31 @@ export const CUSTOMER_IMPORT = {
                 .save({ ignoreMandatoryFields: true }).toString();
         }
         // new addresses
-        if (!esAddresses.filter(i => i).length) return;
-        CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, addressFieldMap, insertedAddresses);
-        (this.esRecord as any)["insertedAddresses"] = insertedAddresses;
+        while (esAddresses.filter(i => i).length)
+            CUSTOMER_IMPORT.setAddress(this.nsRecord, esAddresses, addressFieldMap, insertedAddresses);
+        (this.esRecord as any).insertedAddresses = insertedAddresses;
+        (this.esRecord as any).rsId = rsId;
+
+    },
+
+    shouldReduce(context: EntryPoints.MapReduce.mapContext, esRecord: Shopify.Customer & { nsId: string, rsId: string, insertedAddresses: { nsAddressIndex: number; esAddressIndex: number; }[]; }) {
+        if (esRecord.insertedAddresses?.length) {
+            const customerRec = record.load({ type: record.Type.CUSTOMER, id: esRecord.nsId, isDynamic: true });
+            const extras: { nsAddressId: number, esAddressId: number; }[] = [];
+            esRecord.insertedAddresses.forEach(({ nsAddressIndex, esAddressIndex }) => {
+                const addressId = customerRec.getSublistValue({ sublistId: "addressbook", fieldId: "addressid", line: nsAddressIndex });
+                if (addressId) extras.push({ nsAddressId: Number(addressId), esAddressId: esAddressIndex });
+            });
+            record.submitFields({
+                id: esRecord.rsId,
+                type: RECORDS_SYNC.ID,
+                values: {
+                    [RECORDS_SYNC.FIELDS.NETSUITE_ID]: String(esRecord.nsId),
+                    [RECORDS_SYNC.FIELDS.EXTRAS]: JSON.stringify(extras)
+                }
+            });
+
+        }
     }
 
 };
