@@ -366,7 +366,7 @@ export const CUSTOMER_IMPORT = {
             fieldId: "addressbookaddress"
         });
         for (const [esField, nsField] of Object.entries(addressFieldMap)) {
-            addressbook.setValue(nsField, (esAddress as any)[esField]);
+            addressbook.setValue(nsField, (esAddress as any)[esField] || "");
         }
 
         const nsAddressIndex = nsRecord.getCurrentSublistIndex({ sublistId });
