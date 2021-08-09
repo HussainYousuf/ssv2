@@ -42,6 +42,10 @@ function getRecords(maxEsModDate: Date | undefined) {
         }
     }
 
+    //save maxIdentifier
+    //if records.length < 10000 then getFailedRecords and filter those which are not in records failed + records = 10000
+    //else reschedule
+
     const storePermissions = JSON.parse(runtime.getCurrentScript().getParameter(constants.SCRIPT_PARAMS.BASE_MR_STORE_PERMISSIONS) as string);
     if (since_id) {
         scheduleScript(storePermissions);
