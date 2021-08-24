@@ -10,7 +10,7 @@ import runtime from "N/runtime";
 import search from "N/search";
 import log from "N/log";
 import https from "N/https";
-import * as multiPartUpload from "./multiPartUpload";
+import http from "N/http";
 
 export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
     if (![context.UserEventType.CREATE, context.UserEventType.EDIT, context.UserEventType.XEDIT].includes(context.type)) return;
@@ -89,7 +89,7 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
     ({ success, response } = JSON.parse(response));
     if (!success) throw Error(`failed ${JSON.stringify(response)}`);
 
-    const { id: attachmentId, name } = (response as any).objects?.[0];
+    const { id: attachmentId, name } = (response as any);
     if (!attachmentId) return;
 
     log.debug("pdf uploaded", name);
@@ -118,16 +118,18 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
             },
         }),
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': '*/*'
         }
     }).body;
 
     log.debug("engagement response", response);
 
-    response = https.post({
+    response = http.post({
         url: PROXY_URL,
         body: JSON.stringify({
             url: DEAL_URL,
+            method: "PATCH",
             headers: {
                 'Content-Type': 'application/json'
             },
