@@ -14,7 +14,11 @@ import http from "N/http";
 
 export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
     try {
-        if (![context.UserEventType.CREATE, context.UserEventType.EDIT].includes(context.type)) return;
+        const newRecord = context.newRecord;
+        const invoiceStatus = newRecord.getValue("status");
+        log.debug("context.type", context.type);
+        log.debug("invoiceStatus", invoiceStatus);
+        if (![context.UserEventType.CREATE].includes(context.type) || invoiceStatus != "Open") return;
 
         const storeId = runtime.getCurrentScript().getParameter("custscript_f3_vs_invoice_ue_store_id") || 1;
         const esConfig = record.load({
@@ -23,12 +27,12 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         });
         const apikey = esConfig.getValue("custrecord_esc_password");
         const esInfo = JSON.parse(esConfig.getValue("custrecord_esc_entity_sync_info") as string);
-        const newRecord = context.newRecord;
         const total = newRecord.getValue("total");
-        const opportunityId = newRecord.getValue("opportunity");
+        const subtotal = newRecord.getValue("subtotal");
+        const salesorderId = newRecord.getValue("createdfrom");
 
-        if (!opportunityId) {
-            log.debug(`${newRecord.type} id: ${newRecord.id}`, `No opportunity associated with this ${newRecord.type}`);
+        if (!salesorderId) {
+            log.debug(`${newRecord.type} id: ${newRecord.id}`, `No salesorder associated with this ${newRecord.type}`);
             return;
         }
 
@@ -39,7 +43,7 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
                 "AND",
                 ["custrecord_f3_esrd_ns_recordtype", search.Operator.IS, search.Type.OPPORTUNITY],
                 "AND",
-                ["custrecord_f3_esrd_ns_recordid", search.Operator.IS, opportunityId]
+                ["custrecord_f3_esrd_ns_recordid", search.Operator.IS, salesorderId]
             ],
             columns: ["custrecord_f3_esrd_es_recordid", "custrecord_f3_esrd_ns_dep_recordid"]
         }).run().getRange(0, 1)[0];
@@ -49,7 +53,7 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         const invoiceId = searchResult?.getValue("custrecord_f3_esrd_ns_dep_recordid");
 
         if (!dealId) {
-            log.debug(`Opportunity id: ${opportunityId}`, "No deal id associated with this opportunity");
+            log.debug(`Salesorder id: ${salesorderId}`, "No deal id associated with this salesorder");
             return;
         }
 
@@ -71,7 +75,7 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         const contents = renderFile.getContents();
         const filename = renderFile.name;
 
-        let response = https.post({
+        let response = http.post({
             url: MIDDLEWARE_URL,
             body: JSON.stringify({
                 "files": [
@@ -95,8 +99,9 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         }).body;
 
         log.debug("attachment response", response);
+
         const { success, response: attachmentResponse } = JSON.parse(response);
-        if (!success) throw Error(`failed ${JSON.stringify(response)}`);
+        if (!success) throw Error(response);
 
         const { id: attachmentId, name } = (attachmentResponse as any);
         if (!attachmentId) throw Error(response);
@@ -111,7 +116,7 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
                     active: true
                 },
                 metadata: {
-                    body: 'netsuite invoice pdf'
+                    body: `subtotal: ${subtotal}\n total: ${total}`
                 },
                 attachments: [
                     {
@@ -135,33 +140,34 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         log.debug("engagement response", response);
         if (!JSON.parse(response).engagement) throw Error(response);
 
-        response = http.post({
-            url: PROXY_URL,
-            body: JSON.stringify({
-                url: DEAL_URL,
-                method: "PATCH",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: {
-                    properties: {
-                        description: total
-                    }
-                }
-            }),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        }).body;
+        // response = http.post({
+        //     url: PROXY_URL,
+        //     body: JSON.stringify({
+        //         url: DEAL_URL,
+        //         method: "PATCH",
+        //         headers: {
+        //             'Content-Type': 'application/json'
+        //         },
+        //         body: {
+        //             properties: {
+        //                 description: total
+        //             }
+        //         }
+        //     }),
+        //     headers: {
+        //         'Content-Type': 'application/json'
+        //     }
+        // }).body;
 
-        log.debug("deal response", response);
+        // log.debug("deal response", response);
 
-        if (JSON.parse(response).id) record.submitFields({
+        // if (!JSON.parse(response).id) throw Error(response);
+
+        record.submitFields({
             id: esrdId,
             type: "customrecord_f3_es_record_data",
             values: { "custrecord_f3_esrd_ns_dep_recordid": newRecord.id }
         });
-        else throw Error(response);
 
     } catch (error) {
         log.error("invoice ue", JSON.stringify(error, Object.getOwnPropertyNames(error)));
