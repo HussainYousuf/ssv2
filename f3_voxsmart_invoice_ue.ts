@@ -12,13 +12,25 @@ import log from "N/log";
 import https from "N/https";
 import http from "N/http";
 
+function getFormattedDate(date: Date) {
+    var year = date.getFullYear();
+
+    var month = (1 + date.getMonth()).toString();
+    month = month.length > 1 ? month : '0' + month;
+
+    var day = date.getDate().toString();
+    day = day.length > 1 ? day : '0' + day;
+
+    return month + '/' + day + '/' + year;
+}
+
 export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
     try {
         const newRecord = context.newRecord;
         const invoiceStatus = newRecord.getValue("status");
         log.debug("context.type", context.type);
         log.debug("invoiceStatus", invoiceStatus);
-        if (![context.UserEventType.CREATE].includes(context.type) || invoiceStatus != "Open") return;
+        if (![context.UserEventType.CREATE, context.UserEventType.EDIT].includes(context.type) || invoiceStatus != "Open") return;
 
         const storeId = runtime.getCurrentScript().getParameter("custscript_f3_vs_invoice_ue_store_id") || 1;
         const esConfig = record.load({
@@ -27,9 +39,26 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         });
         const apikey = esConfig.getValue("custrecord_esc_password");
         const esInfo = JSON.parse(esConfig.getValue("custrecord_esc_entity_sync_info") as string);
-        const total = newRecord.getValue("total");
+        const trandate = getFormattedDate((newRecord.getValue("trandate") as Date));
+        const tranid = newRecord.getValue("tranid");
+        const entity = newRecord.getValue("entity");
         const subtotal = newRecord.getValue("subtotal");
         const salesorderId = newRecord.getValue("createdfrom");
+        const currency = newRecord.getText("currency");
+        const companyId = search.create({
+            type: "customrecord_f3_es_record_data",
+            filters: [
+                ["custrecord_f3_esrd_external_system", search.Operator.EQUALTO, Number(storeId)],
+                "AND",
+                ["custrecord_f3_esrd_ns_recordtype", search.Operator.IS, search.Type.CUSTOMER],
+                "AND",
+                ["custrecord_f3_esrd_ns_recordid", search.Operator.IS, entity]
+            ],
+            columns: ["custrecord_f3_esrd_es_recordid"]
+        }).run().getRange(0, 1)[0]?.getValue("custrecord_f3_esrd_es_recordid") || record.load({
+            type: record.Type.CUSTOMER,
+            id: entity
+        }).getValue("externalid");
 
         if (!salesorderId) {
             log.debug(`${newRecord.type} id: ${newRecord.id}`, `No salesorder associated with this ${newRecord.type}`);
@@ -51,6 +80,8 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         let esrdId = searchResult?.id;
         const dealId = searchResult?.getValue("custrecord_f3_esrd_es_recordid");
         const invoiceId = searchResult?.getValue("custrecord_f3_esrd_ns_dep_recordid");
+
+        log.debug("ids", { salesorderId, esrdId, dealId, invoiceId, companyId });
 
         if (!dealId) {
             log.debug(`Salesorder id: ${salesorderId}`, "No deal id associated with this salesorder");
@@ -74,7 +105,6 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         });
         const contents = renderFile.getContents();
         const filename = renderFile.name;
-
         let response = http.post({
             url: MIDDLEWARE_URL,
             body: JSON.stringify({
@@ -116,7 +146,7 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
                     active: true
                 },
                 metadata: {
-                    body: `subtotal: ${subtotal}\n total: ${total}`
+                    body: `${companyId}-${tranid}-${trandate}-${dealId}-${currency}-${subtotal}`
                 },
                 attachments: [
                     {
