@@ -30,7 +30,7 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         const invoiceStatus = newRecord.getValue("status");
         log.debug("context.type", context.type);
         log.debug("invoiceStatus", invoiceStatus);
-        if (![context.UserEventType.CREATE, context.UserEventType.EDIT].includes(context.type) || invoiceStatus != "Open") return;
+        if (![context.UserEventType.CREATE, context.UserEventType.EDIT].includes(context.type)) return;
 
         const storeId = runtime.getCurrentScript().getParameter("custscript_f3_vs_invoice_ue_store_id") || 1;
         const esConfig = record.load({
@@ -41,24 +41,24 @@ export function afterSubmit(context: EntryPoints.UserEvent.afterSubmitContext) {
         const esInfo = JSON.parse(esConfig.getValue("custrecord_esc_entity_sync_info") as string);
         const trandate = getFormattedDate((newRecord.getValue("trandate") as Date));
         const tranid = newRecord.getValue("tranid");
-        const entity = newRecord.getValue("entity");
+        const companyId = newRecord.getText("entity");
         const subtotal = newRecord.getValue("subtotal");
         const salesorderId = newRecord.getValue("createdfrom");
         const currency = newRecord.getText("currency");
-        const companyId = search.create({
-            type: "customrecord_f3_es_record_data",
-            filters: [
-                ["custrecord_f3_esrd_external_system", search.Operator.EQUALTO, Number(storeId)],
-                "AND",
-                ["custrecord_f3_esrd_ns_recordtype", search.Operator.IS, search.Type.CUSTOMER],
-                "AND",
-                ["custrecord_f3_esrd_ns_recordid", search.Operator.IS, entity]
-            ],
-            columns: ["custrecord_f3_esrd_es_recordid"]
-        }).run().getRange(0, 1)[0]?.getValue("custrecord_f3_esrd_es_recordid") || record.load({
-            type: record.Type.CUSTOMER,
-            id: entity
-        }).getValue("externalid");
+        // const companyId = search.create({
+        //     type: "customrecord_f3_es_record_data",
+        //     filters: [
+        //         ["custrecord_f3_esrd_external_system", search.Operator.EQUALTO, Number(storeId)],
+        //         "AND",
+        //         ["custrecord_f3_esrd_ns_recordtype", search.Operator.IS, search.Type.CUSTOMER],
+        //         "AND",
+        //         ["custrecord_f3_esrd_ns_recordid", search.Operator.IS, entity]
+        //     ],
+        //     columns: ["custrecord_f3_esrd_es_recordid"]
+        // }).run().getRange(0, 1)[0]?.getValue("custrecord_f3_esrd_es_recordid") || record.load({
+        //     type: record.Type.CUSTOMER,
+        //     id: entity
+        // }).getValue("externalid");
 
         if (!salesorderId) {
             log.debug(`${newRecord.type} id: ${newRecord.id}`, `No salesorder associated with this ${newRecord.type}`);
