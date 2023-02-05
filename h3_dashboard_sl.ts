@@ -17,25 +17,6 @@ import https from "N/https";
 export function onRequest(context: EntryPoints.Suitelet.onRequestContext) {
     const { request, response } = context;
     if (request.method == "GET") {
-        // const html = getHtml();
-        // response.write(html);
-        // const res = https.get({
-        //     url: "https://api-lab.kube.jooraccess.com/v2/categories",
-        //     headers: {
-        //         "Content-Type": "application/json",
-        //         "Accept": "application/json",
-        //         "Authorization": `Oauth2 MjVkMTdiZjY1ODA0NDhjZDhmMmMzMzNlY2RmNmEyNzg=`
-        //     }
-        // });
-
-        // const r = record.load({ id: 1428, type: "inventoryitem", isDynamic: true });
-        // const x = r.findSublistLineWithValue({
-        //     sublistId: "locations",
-        //     fieldId: "location",
-        //     value: 1
-        // });
-        // response.write(String(x));
-        // response.write(JSON.stringify(new Date("2019-07-17T06:36:12.651372+00:00")));
         response.write(JSON.stringify({
             search: search.create({
                 type: search.Type.ITEM,
