@@ -17,14 +17,6 @@ import https from "N/https";
 export function onRequest(context: EntryPoints.Suitelet.onRequestContext) {
     const { request, response } = context;
     if (request.method == "GET") {
-        response.write(JSON.stringify({
-            search: search.create({
-                type: search.Type.ITEM,
-                // filters: ["parent", "noneof", "@NONE@"],
-                columns: ["itemid", "parent", "subsidiary", search.createColumn({ name: "formulatext_modified", formula: "to_char({modified},'yyyy-mm-dd hh24:mi:ss')" })]
-            }).run().getRange(0, 1000),
-            // record: record.load({ type: record.Type.INVENTORY_ITEM, id: 1428 })
-        }));
 
     }
     else if (request.method == "POST") {
